@@ -9,7 +9,7 @@ export const EMOJIS = {
   CRYING: get('crying_cat_face'),
   HEART_EYES: get('heart_eyes_cat'),
   JOY: get('joy_cat'),
-  KISSING: get('kissing_cat'),
+  EYES: get('eyes'),
   SCREAM: get('scream_cat'),
   ROCKET: get('rocket'),
   SMIRK: get('smirk_cat'),
