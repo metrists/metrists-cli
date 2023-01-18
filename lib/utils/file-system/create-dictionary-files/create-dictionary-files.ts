@@ -1,4 +1,4 @@
-import { writeFile, mkdir, lstat } from 'fs/promises';
+import { writeFile, mkdir } from 'fs/promises';
 import * as path from 'path';
 import { checkPathExists } from '../check-path-exists';
 import { FileCreationException } from '../../../../exceptions/file-creation.exception';
