@@ -11,6 +11,7 @@ const bootstrap = () => {
   const program: CommanderStatic = commander;
   program
     .version(
+      // eslint-disable-next-line
       require('../package.json').version,
       '-v, --version',
       'Output the current version.',

@@ -1,4 +1,3 @@
-import * as chalk from 'chalk';
 import { EMOJIS } from './emojis';
 
 export const MESSAGES = {
@@ -11,5 +10,5 @@ export const MESSAGES = {
   DEFAULT: `Something went wrong ${EMOJIS.POOP}`,
   INTERNAL_FETCHER_ERROR: `Something went wrong ${EMOJIS.POOP}. [error]`,
   METRISTS_INFORMATION_PACKAGE_MANAGER_FAILED: `${EMOJIS.SMIRK}  cannot read your project package.json file, are you inside your project directory?`,
-  MISSING_PARAMETER: `Required parameters [parameters] are missing ${EMOJIS.EYES}`
+  MISSING_PARAMETER: `Required parameters [parameters] are missing ${EMOJIS.EYES}`,
 };

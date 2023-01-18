@@ -1,5 +1,4 @@
 import { promises as fs, existsSync } from 'fs';
-import { MESSAGES } from '../ui/messages';
 import { join } from 'path';
 import { ReadEnvException } from '../../exceptions/read-env.exception';
 import * as dotenv from 'dotenv';
