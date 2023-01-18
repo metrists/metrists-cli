@@ -2,7 +2,7 @@ import { Exception } from '../interfaces/exception.interface';
 import { MESSAGES } from '../lib/ui';
 
 export abstract class BaseException extends Error implements Exception {
-  MESSAGE_TITLE = 'DEFAULT' as keyof typeof MESSAGES;
+  MESSAGE_TITLE: keyof typeof MESSAGES;
   private substitutions?: Record<string, string> = {};
 
   constructor(substitutions?: Record<string, string>) {
@@ -13,10 +13,10 @@ export abstract class BaseException extends Error implements Exception {
   }
 
   getMessage() {
-    let message = MESSAGES[this.MESSAGE_TITLE];
+    let message = MESSAGES[this.MESSAGE_TITLE ?? 'DEFAULT'];
     const substitutions = this.getSubstitutions();
 
-    Object.values(substitutions).forEach(
+    Object.entries(substitutions).forEach(
       ([key, value]) => (message = message.replace(`[${key}]`, value)),
     );
 
