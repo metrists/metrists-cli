@@ -2,16 +2,16 @@ name: ESLint
 
 on:
   push:
-    branches: [ "main" , "develop" ]
+    branches: ['main', 'develop']
   pull_request:
     # The branches below must be a subset of the branches above
-    branches: [ "main" , "develop" ]
+    branches: ['main', 'develop']
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - name: Install modules
-      run: yarn
-    - name: Run ESLint
-      run: eslint .
+      - uses: actions/checkout@v2
+      - name: Install modules
+        run: yarn
+      - name: Run ESLint
+        run: yarn run eslint .
