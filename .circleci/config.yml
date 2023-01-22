@@ -9,6 +9,16 @@ workflows:
   build:
     jobs:
       - build-only
+  publish:
+    jobs:
+      - deploy:
+          requires:
+            - build-only
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
 jobs:
   build-only:
     docker:
@@ -27,3 +37,13 @@ jobs:
       - persist_to_workspace:
           root: ~/project
           paths: .
+  deploy:
+    steps:
+      - attach_workspace:
+          at: ~/repo
+      - run:
+          name: Authenticate with registry
+          command: echo "//registry.npmjs.org/:_authToken=$npm_TOKEN" > ~/repo/.npmrc
+      - run:
+          name: Publish package
+          command: npm publish
