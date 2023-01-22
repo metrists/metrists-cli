@@ -29,7 +29,8 @@ Metrists cli is intended to be used with a internationalization library. We high
   - [Private repositories](#private-repositories)
   - [GitHub Enterprise](#github-enterprise)
 - [Environment Variables](#using-environment-variables-as-fetcher-parameters)
-- [Custom Fetchers](#custom-fetchers)
+- [Fetchers](#fetchers)
+  - [Custom Fetchers](#custom-fetchers)
 - [Contributing](#contributing)
 - [Code of Conduct](#code-of-conduct)
 - [LICENSE](#license)
@@ -65,7 +66,7 @@ Your second level of `files/directories` specify the localization namespaces. In
 
 > 🌕 The file structure always follows the pattern: `{language}/{namespace}/{file_key}.json`.
 
-We now have a file called `welcome` in the following path `en/default/welcome.json` is set to `default`:
+The file `/en/default/welcome.json` contains the following content:
 
 ```json
 {
@@ -73,9 +74,15 @@ We now have a file called `welcome` in the following path `en/default/welcome.js
 }
 ```
 
-You can access your phrase using the key `welcome.TITLE` when your localization [namespace](https://www.i18next.com/principles/translation-resolution#namespaces).
+You can access the phrase `TITLE` using the key `welcome.TITLE` inside the `default` localization [namespace](https://www.i18next.com/principles/translation-resolution#namespaces).
 
-You could also nest your files and directories as deep as you want. So you can access the content of `copyright.json` using the key `footer.copyright.`. For example the copyright phrase in the `en` language and `default` namespace would be `footer.copyright.TEXT`.
+You could also nest your files and directories as deep as you want. See the following examples:
+
+| Language | namespace | key                   | Value               |
+| -------- | --------- | --------------------- | ------------------- |
+| EN       | default   | welcome.TITLE         | Local Repository    |
+| FR       | default   | welcome.TITLE         | Référentiel local   |
+| EN       | default   | footer.copyright.TEXT | © 2023 Metrists CLI |
 
 ### Connect Your Project to the Repository
 
