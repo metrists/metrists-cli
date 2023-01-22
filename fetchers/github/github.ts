@@ -31,15 +31,18 @@ const removeFileExtension = (fileName: string) => {
 };
 
 const cipherRepository = async (repositoryClient: AxiosInstance, path = '') => {
+  const basePath = '/contents';
   const cipherTree: CipherTree = {};
 
-  const { data: repository } = await repositoryClient.get(`${path}`);
+  const { data: repository } = await repositoryClient.get(
+    `${basePath}/${path}`,
+  );
 
   for (const item of repository) {
     if (item.type === 'dir') {
       cipherTree[item.name] = await cipherRepository(
         repositoryClient,
-        `${path}/${item.path}`,
+        `${item.path}`,
       );
     } else if (item.type === 'file' && item.name.endsWith('.json')) {
       const { data: fileContent } = await axios.get(item.download_url, {
@@ -60,7 +63,7 @@ export const github = async ({
   try {
     const axiosClient = getAxiosClient({ baseUrl, ...rest });
 
-    return await cipherRepository(axiosClient, '/contents');
+    return await cipherRepository(axiosClient);
   } catch (e) {
     throw e;
   }
