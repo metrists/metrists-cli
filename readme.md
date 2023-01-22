@@ -16,16 +16,20 @@
 
 ## Description
 
-The Metrists CLI is a command-line interface tool that helps you loosely couple your localization and copyrighting from your source code. Metrists gives you the freedom to store your localization files outside of your source-code.
+The Metrists CLI is a command-line interface tool that gives you the freedom to store your localization files outside of your source-code.
 
-- [Features](#features)
-- [Executing TypeScript](#execute-typescript)
+Metrists cli is intended to be used with a internationalization library. We highly recommend that you use [i18next](https://www.i18next.com/) with Metrists.
+
+## Table of Contents
+
 - [Installation](#installation)
-- [Usage](#usage)
-  - [Basic](#usage)
-  - [Callbacks](#callbacks)
-  - [Interceptors](#interceptors)
-  - [Global Values](#global-values)
+- [GitHub](#sync-using-a-gitHub-repository)
+  - [Setting up a repository](#setup-a-locals-github-repository)
+  - [Connect your project](#connect-your-project-to-the-repository)
+  - [Private repositories](#private-repositories)
+  - [GitHub Enterprise](#github-enterprise)
+- [Environment Variables](#using-environment-variables-as-fetcher-parameters)
+- [Custom Fetchers](#custom-fetchers)
 - [Contributing](#contributing)
 - [Code of Conduct](#code-of-conduct)
 - [LICENSE](#license)
@@ -40,29 +44,38 @@ npm install -g @metrists/cli
 
 ### Setup a locals GitHub Repository
 
-Create a repository with the following structure:
+Create a repository with the following structure; or alternatively, clone our [example repository](https://github.com/metrists/locals-example).
 
 ```
 en/
-├─ namespace_title/
-│  ├─ titles.json
+├─ default/
+│  ├─ footer/
+│  │  ├─ copyright.json/
+│  ├─ welcome.json
 fr/
-├─ namespace_title/
+├─ default/
+│  ├─ footer/
+│  │  ├─ copyright.json/
+│  ├─ welcome.json
 ```
 
-Use [ISO 639-1](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes)
+Metrists uses [ISO 639-1](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes) language codes
 standard for your top level folder names.
-Your second level of files/directories specify the localization namespaces. Inside each namespace, you can nested create directories and json files.
+Your second level of `files/directories` specify the localization namespaces. Inside each namespace, you can nested create directories and json files.
 
-For example, let's say you have a file called `main_page` in the following path `en/default_namespace/titles/main_page.json`:
+> 🌕 The file structure always follows the pattern: `{language}/{namespace}/{file_key}.json`.
+
+We now have a file called `welcome` in the following path `en/default/welcome.json` is set to `default`:
 
 ```json
 {
-  "main_title": "Metrists is great"
+  "TITLE": "Metrists is great"
 }
 ```
 
-You can access your phrase using the key `titles.main_page.main_tile` when your localization namespace is set to `default_namespace` and language is set to `en`.
+You can access your phrase using the key `welcome.TITLE` when your localization [namespace](https://www.i18next.com/principles/translation-resolution#namespaces).
+
+You could also nest your files and directories as deep as you want. So you can access the content of `copyright.json` using the key `footer.copyright.`. For example the copyright phrase in the `en` language and `default` namespace would be `footer.copyright.TEXT`.
 
 ### Connect Your Project to the Repository
 
@@ -79,84 +92,155 @@ Create a file called `.metristssrc` in the root of your repository:
 }
 ```
 
-1. `fetcher` specifies the mechanisms that grab your localization files. (see [Fetchers](#fetchers)). In this case, we will be using `github`.
+1. `fetcher` specifies the mechanisms that grab your localization files. In this case, we will be using `github`.
 1. `resolvePath` is the path where your localization files will be store.
 1. Specify your github repository and organization in `fetcherParams`. If you are using a personal account, your GitHub organization is your GitHub username.
-   <!-- - If your `fetcherParams` contains secrets, you can use `env.` an environment variable name, instead of the actual value. -->
 1. In the root of your project, run:
 
 ```
 metrists sync
 ```
 
-### Callbacks
+✅ Your localization files are now synced with your GitHub repository.
 
-The `exec`function will accept a second parameter—i.e. `options`—for additional customizations.
+---
 
-You can pass in `onSuccess` and `onError` callbacks to the `options` object:
+### Private Repositories
 
-```ts
-import { exec } from 'js-exec';
+If you are using a private repository, you will need to create a GitHub Personal Access Token. You can create a token by following the instructions [here](https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token).
 
-const source = `console.log("Hello from js-exec 👋");`;
+Once created, you can provide it to the fetcher with the `token` parameter. You can also use [Environment Variables](#using-environment-variables-for-fetcher-parameters) to provide the token.
 
-const sandbox = exec(source, {
-  onSuccess: () => console.log('Taadaa 🎉🎉'),
-  onError: (e: Error) => console.log('Something occurred 🥺\n', e),
-});
-
-sandbox({});
-// Something occurred 🥺
-// TypeError: Cannot read property 'log' of undefined
-
-sandbox({ console });
-// Hello from js-exec 👋
-// Taadaa 🎉🎉
+```json
+{
+  "resolvePath": "src/locals",
+  "fetcher": "github",
+  "fetcherParams": {
+    "org": "organization-name",
+    "repo": "repository-name",
+    "token": "github-token-here"
+  }
+}
 ```
 
-### Interceptors
+### GitHub Enterprise
 
-Interceptors will help you run functions on the code, before it gets executed.
+Metrists by default will assume `https://api.github.com` as the API endpoint. If you are using GitHub Enterprise, you can specify the API endpoint with the `baseUrl` parameter:
 
-Each Interceptor receives a `source: string` and returns a transformed `source: string`.
-
-```ts
-import { exec, Source } from 'js-exec';
-
-const source = `console.log("There are some f***s here!");`;
-
-//Removes bad words inside the source
-const removeBadWords = (source: Source): Source => {
-  let cleanSource = source;
-  const badWordsArray = ['f***'];
-  const textToReplace = '🚫BAD WORD🚫';
-  badWordsArray.forEach(
-    (word) => (cleanSource = cleanSource.replace(word, textToReplace)),
-  );
-  return cleanSource;
-};
-
-//Interceptors are run sequentially
-const interceptors = [removeBadWords];
-
-//interceptors are passed into the options object
-const runCode = exec(source, { interceptors });
-runCode({ console });
-// There are some 🚫BAD WORD🚫s here!
+```json
+{
+  "resolvePath": "src/locals",
+  "fetcher": "github",
+  "fetcherParams": {
+    "org": "organization-name",
+    "repo": "repository-name",
+    "baseUrl": "https://api.yourcompanygithub.com"
+  }
+}
 ```
 
-### Global Values
+Or as an [Environment Variable](#using-environment-variables-for-fetcher-parameters):
 
-You can also make values available, on all executions of the sandbox; If, you wish to re-use them.
-
-```ts
-const pi = 3.141592;
-
-const globalValues = { pi };
-
-//pi will be available on every execution of runCode
-const runCode = exec(source, { globalValues });
+```json
+{
+  "resolvePath": "src/locals",
+  "fetcher": "github",
+  "fetcherParams": {
+    "org": "organization-name",
+    "repo": "repository-name",
+    "baseUrl": "env.GITHUB_API_URL"
+  }
+}
 ```
+
+## Using Environment Variables as Fetcher Parameters
+
+You can also use Environment Variables to provide fetcher params. Simply add `env.[variable name]` as the value of a fetcher parameter:
+
+```json
+{
+  "resolvePath": "src/locals",
+  "fetcher": "github",
+  "fetcherParams": {
+    "org": "organization-name",
+    "repo": "repository-name",
+    "token": "env.environment-variable-name"
+  }
+}
+```
+
+Metrists will by default assume that your environment file exists in the root of your project, as `.env`. If you wish to change the path to your environment file, you can use the `envPath` parameter inside your `.metristsrc` file:
+
+```json
+{
+  "resolvePath": "src/locals",
+  "fetcher": "github",
+  "fetcherParams": {
+    "org": "organization-name",
+    "repo": "repository-name",
+    "token": "env.environment-variable-name"
+  },
+  "envPath": "path/to/your/env/file"
+}
+```
+
+## Fetchers
+
+Fetchers are mechanisms that grab your localization files. Fetchers are responsible for fetching the localization information from a source and outputting it in a JSON format.
+
+The output of all fetchers should look like this:
+
+```json
+{
+  "[language]": {
+    "[namespace]": {
+      "[key]": "[phrase]"
+    },
+    "[another-namespace]": {
+      "[key]": {
+        "[key]": {
+          "[key]": "[value]"
+        }
+      }
+    }
+  }
+}
+```
+
+> 🌕 Phrase can be nested as deep as you want.
+
+### Custom Fetchers
+
+If you wish to create your custom solution for storing your localization files, you can create your own fetcher. All your fetcher needs to do is to `log` a JSON version of your localization output:
+
+```js
+console.log(
+  JSON.stringify({
+    en: {
+      default: {
+        title: 'Metrists is great',
+      },
+    },
+  }),
+);
+```
+
+Then you can call upon your fetcher file in your `.metristssrc` file:
+
+```json
+{
+  "resolvePath": "src/locals",
+  "fetcher": "custom-fetcher.js"
+}
+```
+
+Then run:
+
+```
+metrists sync
+```
+
+✅ Your localization files are now synced with your custom fetcher.
 
 ## Contributing
 
