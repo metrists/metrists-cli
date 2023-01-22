@@ -11,6 +11,7 @@ workflows:
       - build-only
   publish:
     jobs:
+      - build-only
       - deploy:
           requires:
             - build-only
