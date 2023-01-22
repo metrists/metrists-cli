@@ -11,7 +11,7 @@
 
 ---
 
-[![Downloads Per Month](https://img.shields.io/npm/dm/@metrists)](https://www.npmjs.com/package/js-exec) [![Top Language](https://img.shields.io/github/languages/top/metrists/metrists-cli)](https://github.com/metrists/metrists-cli/) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![Downloads Per Month](https://img.shields.io/npm/dm/@metrists/cli)](https://www.npmjs.com/package/@metrists/cli) [![Top Language](https://img.shields.io/github/languages/top/metrists/metrists-cli)](https://github.com/metrists/metrists-cli/) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![<metrists>](https://circleci.com/gh/metrists/metrists-cli.svg?style=shield)](https://app.circleci.com/pipelines/github/metrists/metrists-cli)
 
 ## Description
