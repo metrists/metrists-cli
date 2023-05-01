@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import * as commander from 'commander';
 import { CommanderStatic } from 'commander';
+import * as path from 'path';
 import { CommandLoader } from '../commands';
 import {
   loadLocalBinCommandLoader,
@@ -8,11 +9,23 @@ import {
 } from '../lib/utils/local-binaries';
 
 const bootstrap = () => {
+  const currentWorkingDirectory = __dirname;
+
+  const packageJsonPaths = path.join(
+    ...[
+      currentWorkingDirectory,
+      ...(currentWorkingDirectory.search('/dist') === -1
+        ? ['..']
+        : ['..', '..']),
+      'package.json',
+    ],
+  );
+
   const program: CommanderStatic = commander;
   program
     .version(
       // eslint-disable-next-line
-      require('../package.json').version,
+      require(packageJsonPaths).version,
       '-v, --version',
       'Output the current version.',
     )
