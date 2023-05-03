@@ -5,8 +5,9 @@ import { runFetcher } from '../lib/run-fetcher';
 import { createDictionaryFiles } from '../lib/utils/file-system/create-dictionary-files';
 import { AbstractAction } from './abstract.action';
 import { BaseException } from '../exceptions/base.exception';
-import { MESSAGES } from '../lib/ui/messages';
 import { MissingParamException } from '../exceptions/missing-param.exception';
+import { readRc } from '../lib/utils/read-rc';
+import { MESSAGES } from '../lib/ui/messages';
 import type { RcFile } from '../interfaces/rc.interface';
 
 export class SyncAction extends AbstractAction {
@@ -57,11 +58,11 @@ export class SyncAction extends AbstractAction {
     }
   }
 
-  async getRCFile(): Promise<RcFile> {
-    const rcPath = join(process.cwd(), '.metristsrc');
-    if (existsSync(rcPath)) {
-      return JSON.parse(await promises.readFile(rcPath, 'utf8'));
+  async getRCFile(): Promise<RcFile | null> {
+    try {
+      return await readRc();
+    } catch (e) {
+      return null;
     }
-    return;
   }
 }

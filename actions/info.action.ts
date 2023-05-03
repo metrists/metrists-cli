@@ -5,6 +5,7 @@ import osName = require('os-name');
 import { join } from 'path';
 import { AbstractAction } from './abstract.action';
 import { BANNER, MESSAGES } from '../lib/ui';
+import { readPackageJsonSync } from '../lib/utils/read-package-json';
 
 interface LockfileDependency {
   version: string;
@@ -143,12 +144,12 @@ export class InfoAction extends AbstractAction {
   }
 
   getPackageJson(): PackageJson {
-    return JSON.parse(
-      readFileSync(join(process.cwd(), 'package.json'), 'utf8'),
-    );
+    return readPackageJsonSync() as PackageJson;
   }
 
   getCliPackageJson(): PackageJson {
-    return JSON.parse(readFileSync(join(__dirname, '../package.json'), 'utf8'));
+    return JSON.parse(
+      readFileSync(join(__dirname, '../../package.json'), 'utf8'),
+    );
   }
 }
