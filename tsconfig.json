@@ -10,7 +10,19 @@
     "strict": false,
     "useUnknownInCatchVariables": false,
     "types": ["node"],
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "baseUrl": ".",
+    "paths": {
+      "@lib/*" : ["./lib/*"],
+      "@utils/*" : ["./lib/utils/*"],
+      "@interfaces/*" : ["./interfaces/*"],
+      "@commands/*": ["./commands/*"],
+      "@actions/*": ["./actions/*"],
+      "@exceptions/*" : ["./exceptions/*"],
+      "@constants/*": ["./constants/*"],
+      "@ui/*" : ["./lib/ui/*"],
+      "@ui" : ["./lib/ui/index"],
+    }
   },
-  "exclude": ["e2e" , ".git" , ".circleci" , ".eslint.json" , ".prettierrc" , "nodemon.json"]
+  "exclude": ["dist", "e2e" , ".git" , ".circleci" , ".eslint.json" , ".prettierrc" , "nodemon.json"]
 }
