@@ -11,4 +11,5 @@ export const MESSAGES = {
   INTERNAL_FETCHER_ERROR: `Something went wrong ${EMOJIS.POOP}. [error]`,
   METRISTS_INFORMATION_PACKAGE_MANAGER_FAILED: `${EMOJIS.SMIRK}  cannot read your project package.json file, are you inside your project directory?`,
   MISSING_PARAMETER: `Required parameters [parameters] are missing ${EMOJIS.EYES}`,
+  WATCH_MODE_START: `Starting Metrists in watch mode...`,
 };

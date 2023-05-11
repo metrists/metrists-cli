@@ -1,11 +1,13 @@
 import * as chalk from 'chalk';
 import { promises } from 'fs';
+import { join } from 'path';
+import { diff } from 'deep-diff';
+import { watch } from 'chokidar';
 import { AbstractAction } from './abstract.action';
 import { readRc } from '../lib/utils/read-rc';
-import { watch } from 'chokidar';
 import { createLockTree } from '../lib/utils/create-lock-tree';
+import { MESSAGES } from '../lib/ui/messages';
 import { RcFile } from '../interfaces/rc.interface';
-import { join } from 'path';
 
 const readFile = promises.readFile;
 
@@ -16,7 +18,6 @@ interface FlattenJson {
 export class WatchAction extends AbstractAction {
   public async handle() {
     const resolvePath = await this.getResolvePath();
-
     const inMemoryTree = await createLockTree(resolvePath);
 
     await this.watchFiles(resolvePath, async (event, path) => {
@@ -26,7 +27,7 @@ export class WatchAction extends AbstractAction {
         await readFile(join(process.cwd(), path), { encoding: 'utf-8' }),
       );
 
-      console.log(oldContent, newContent);
+      console.log(diff(oldContent, newContent));
     });
   }
 
@@ -47,7 +48,9 @@ export class WatchAction extends AbstractAction {
     const currentDate = new Date();
     console.info(
       chalk.grey(
-        `[${currentDate.toDateString()} ${currentDate.toLocaleTimeString()}] Starting Metrists in watch mode...`,
+        `[${currentDate.toDateString()} ${currentDate.toLocaleTimeString()}] ${
+          MESSAGES.WATCH_MODE_START
+        }`,
       ),
     );
   }
