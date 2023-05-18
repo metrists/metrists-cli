@@ -1,13 +1,14 @@
 import * as chalk from 'chalk';
 import { promises } from 'fs';
-import { join } from 'path';
+import { join, resolve } from 'path';
 import { diff } from 'deep-diff';
 import { watch } from 'chokidar';
 import { AbstractAction } from './abstract.action';
 import { readRc } from '../lib/utils/read-rc';
 import { createLockTree } from '../lib/utils/create-lock-tree';
 import { MESSAGES } from '../lib/ui/messages';
-import { RcFile } from '../interfaces/rc.interface';
+import { FileCache } from '../lib/file-cache';
+import type { RcFile } from '../interfaces/rc.interface';
 
 const readFile = promises.readFile;
 
@@ -18,17 +19,20 @@ interface FlattenJson {
 export class WatchAction extends AbstractAction {
   public async handle() {
     const resolvePath = await this.getResolvePath();
-    const inMemoryTree = await createLockTree(resolvePath);
 
-    await this.watchFiles(resolvePath, async (event, path) => {
-      const pathWithoutJson = path.replace(/.json$/, '');
-      const oldContent = inMemoryTree[pathWithoutJson];
-      const newContent = JSON.parse(
-        await readFile(join(process.cwd(), path), { encoding: 'utf-8' }),
-      );
+    const cache = new FileCache(join(resolvePath, '.cache'));
 
-      console.log(diff(oldContent, newContent));
-    });
+    await cache.loadCache(resolvePath);
+
+    // const inMemoryTree = await createLockTree(resolvePath);
+    // await this.watchFiles(resolvePath, async (event, path) => {
+    //   const pathWithoutJson = path.replace(/.json$/, '');
+    //   const oldContent = inMemoryTree[pathWithoutJson];
+    //   const newContent = JSON.parse(
+    //     await readFile(join(process.cwd(), path), { encoding: 'utf-8' }),
+    //   );
+    //   console.log(diff(oldContent, newContent));
+    // });
   }
 
   protected watchFiles(
