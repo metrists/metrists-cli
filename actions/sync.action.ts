@@ -1,23 +1,11 @@
-import { existsSync, promises } from 'fs';
-import { join } from 'path';
 import * as chalk from 'chalk';
-import { runFetcher } from '../lib/run-fetcher';
-import { createDictionaryFiles } from '../lib/utils/file-system/create-dictionary-files';
 import { AbstractAction } from './abstract.action';
 import { BaseException } from '../exceptions/base.exception';
-import { MissingParamException } from '../exceptions/missing-param.exception';
-import { readRc } from '../lib/utils/read-rc';
 import { MESSAGES } from '../lib/ui/messages';
-import type { RcFile } from '../interfaces/rc.interface';
 
 export class SyncAction extends AbstractAction {
   public async handle({ options }) {
     try {
-      const { fetcher, resolve, fetcherParams, envPath } =
-        await this.resolveOptions(options);
-      this.validateParams({ fetcher, resolve, fetcherParams, envPath });
-      const output = await runFetcher(fetcher, fetcherParams, envPath);
-      await createDictionaryFiles(resolve, output);
       console.log(chalk.green(MESSAGES.SYNC_SUCCESSFUL));
     } catch (e) {
       if (e instanceof BaseException) {
@@ -25,44 +13,6 @@ export class SyncAction extends AbstractAction {
       } else {
         throw e;
       }
-    }
-  }
-
-  async resolveOptions(options) {
-    const rc = await this.getRCFile();
-
-    return {
-      fetcher: options?.fetcher ?? rc?.fetcher,
-      resolve: options?.resolve ?? rc?.resolvePath,
-      envPath: options?.env ?? rc?.envPath,
-      fetcherParams: rc?.fetcherParams ?? {},
-    };
-  }
-
-  validateParams(options) {
-    const requiredParams = ['fetcher', 'resolve'];
-    const parameterErrors = requiredParams.reduce(
-      (paramErrors, currentParam) => {
-        if (!options[currentParam]) {
-          if (paramErrors) {
-            return (paramErrors += `, ${currentParam}`);
-          } else {
-            return currentParam;
-          }
-        }
-      },
-      '',
-    );
-    if (parameterErrors) {
-      throw new MissingParamException({ parameters: parameterErrors });
-    }
-  }
-
-  async getRCFile(): Promise<RcFile | null> {
-    try {
-      return await readRc();
-    } catch (e) {
-      return null;
     }
   }
 }

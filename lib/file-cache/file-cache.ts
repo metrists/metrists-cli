@@ -27,11 +27,13 @@ export class FileCache {
       const stats = await stat(filePath);
 
       if (stats.isDirectory()) {
+        if (file.endsWith('.cache')) {
+          continue;
+        }
         await this.copyFilesToCache(filePath);
       } else {
-        const cacheKey = relative(sourcePath, filePath);
         const cacheValueStream = createReadStream(filePath);
-        const cacheStream = cacache.put.stream(this.cachePath, cacheKey);
+        const cacheStream = cacache.put.stream(this.cachePath, filePath);
 
         await pipeline(cacheValueStream, cacheStream);
       }
@@ -39,15 +41,6 @@ export class FileCache {
   }
 
   async readCache(filePath: string): Promise<string | null> {
-    const cacheKey = relative(this.cachePath, filePath);
-
-    try {
-      const cacheData = await cacache.get(this.cachePath, cacheKey);
-      const cacheValue = await readFile(cacheData.path);
-      return cacheValue.toString();
-    } catch (error) {
-      console.error(`Error reading cache for file '${filePath}':`, error);
-      return null;
-    }
+    return await await cacache.get(this.cachePath, filePath);
   }
 }
