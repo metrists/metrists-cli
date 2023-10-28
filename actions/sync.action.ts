@@ -10,8 +10,10 @@ export class SyncAction extends AbstractAction {
     try {
       console.log(chalk.green(MESSAGES.SYNC_SUCCESSFUL));
 
+      const id = options.book ?? '13';
+
       const parsedStuff = await parseRdf(
-        join(__dirname, '..', '..', 'data', 'rdf', '1', 'pg1.rdf'),
+        join(__dirname, '..', '..', 'data', 'rdf', id, `pg${id}.rdf`),
       );
 
       console.log(parsedStuff);
