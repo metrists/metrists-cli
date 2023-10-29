@@ -1,10 +1,11 @@
+import { join } from 'path';
 import * as chalk from 'chalk';
 import { AbstractAction } from './abstract.action';
 import { BaseException } from '../exceptions/base.exception';
 import { MESSAGES } from '../lib/ui/messages';
 import { parseRdf } from '../lib/utils/parse-rdf/parse-rdf';
-import { join } from 'path';
-
+import { authorWikipediaModifier } from '../lib/modifiers/author-wikipedia-modifier';
+import { applyModifiers } from '../lib/modifiers';
 export class SyncAction extends AbstractAction {
   public async handle({ options }) {
     try {
@@ -16,9 +17,14 @@ export class SyncAction extends AbstractAction {
         join(__dirname, '..', '..', 'data', 'rdf', id, `pg${id}.rdf`),
       );
 
-      console.log(parsedStuff);
+      const modifiedStuff = await applyModifiers([authorWikipediaModifier])(
+        parsedStuff,
+      );
+
+      console.log(modifiedStuff);
     } catch (e) {
       if (e instanceof BaseException) {
+        //TODO: Report error
         console.error(chalk.red(e.getMessage()));
       } else {
         throw e;

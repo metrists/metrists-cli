@@ -1,13 +1,41 @@
+// import { ParseBookException } from '@exceptions/parse-book.exception';
 import { XMLParser } from '../../xml-parser/xml-parser';
 import { readFile } from 'fs/promises';
-import axios from 'axios';
-import { load } from 'cheerio';
+
+import * as z from 'zod';
+
+export const ParsedAuthorSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  dob: z.string().optional(),
+  wikipedia: z.string().optional(),
+  avatarUrl: z.string().optional(),
+  description: z.string().optional(),
+});
+
+export const ParsedTagSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+});
+
+export const ParsedBookSchema = z.object({
+  id: z.string(),
+  authors: z.array(ParsedAuthorSchema),
+  tags: z.array(ParsedTagSchema),
+  title: z.string(),
+  htmlUrl: z.string(),
+  rights: z.string().optional(),
+  description: z.string().optional(),
+  published: z.string().optional(),
+  publisher: z.string().optional(),
+});
 
 export interface ParsedAuthor {
   name: string;
   dob?: string;
   id: string;
   wikipedia?: string;
+  avatarUrl?: string;
   description?: string;
 }
 
@@ -21,7 +49,7 @@ export interface ParsedBook {
   authors: ParsedAuthor[];
   tags: ParsedTag[];
   title: string;
-  htmlFileAddress: string;
+  htmlUrl: string;
   rights?: string;
   description?: string;
   published?: string;
@@ -33,7 +61,7 @@ export const parseRdf = async (filePath: string): Promise<ParsedBook> => {
 
   const parser = new XMLParser(fileString);
 
-  return {
+  const book = {
     id: parseBookId(parser),
     authors: await parseAuthors(parser),
     rights: parseBookRights(parser),
@@ -42,8 +70,15 @@ export const parseRdf = async (filePath: string): Promise<ParsedBook> => {
     description: parseBookDescription(parser),
     publisher: parseBookPublisher(parser),
     published: parseBookIssued(parser),
-    htmlFileAddress: parseBookHtmlAddress(parser),
+    htmlUrl: parseBookHtmlAddress(parser),
   };
+
+  try {
+    ParsedBookSchema.parse(book);
+    return book;
+  } catch (e) {
+    throw new Error(e.message);
+  }
 };
 
 const parseAuthors = async (parser: XMLParser): Promise<ParsedAuthor[]> => {
@@ -66,12 +101,6 @@ const parseAuthors = async (parser: XMLParser): Promise<ParsedAuthor[]> => {
         }
       }
 
-      let description = null;
-
-      if (wikipediaUrl) {
-        description = await scrapeAuthorDescription(wikipediaUrl);
-      }
-
       const id = wikipedia ? wikipedia : parser.getFirstValue(author, './name');
 
       return {
@@ -79,7 +108,6 @@ const parseAuthors = async (parser: XMLParser): Promise<ParsedAuthor[]> => {
         dob: parser.getFirstValue(author, './birthdate'),
         id: makeValueIntoId(id),
         wikipedia: wikipediaUrl,
-        description,
       };
     }),
   );
@@ -152,44 +180,3 @@ const makeValueIntoId = (value: string) => {
     .replace(/[^a-zA-Z0-9 -]/g, '')
     .replace(/ /g, '-');
 };
-
-async function scrapeAuthorDescription(wikipediaUrl) {
-  try {
-    // Fetch the Wikipedia page content
-    const response = await axios.get(wikipediaUrl);
-    const html = response.data;
-
-    // Load the HTML content into Cheerio
-    const $ = load(html);
-
-    // Find the element with the author's description
-    const descriptionElement = $('p')
-      .filter((i, el) => $(el).text().trim().length > 0)
-      .first();
-
-    if (descriptionElement.length > 0) {
-      // Extract and clean the description text
-      let descriptionText = descriptionElement.text();
-
-      // Remove reference markers like [1], [2], [a], [b], etc.
-      descriptionText = descriptionText.replace(/\[\d+[a-zA-Z]*\]/g, '');
-
-      // Remove content within parentheses that matches the specified pattern
-      descriptionText = descriptionText.replace(
-        /\([^)]*\.[a-zA-Z-]*[^)]*\)/g,
-        '',
-      );
-
-      // Replace line breaks and extra whitespace with single spaces
-      descriptionText = descriptionText.replace(/[\r\n]+/g, ' ').trim();
-
-      return descriptionText;
-    } else {
-      console.error('No author description found on the page');
-      return null;
-    }
-  } catch (error) {
-    console.error('An error occurred while scraping:', error.message);
-    return null;
-  }
-}
