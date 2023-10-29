@@ -1,11 +1,14 @@
 import { XMLParser } from '../../xml-parser/xml-parser';
 import { readFile } from 'fs/promises';
+import axios from 'axios';
+import { load } from 'cheerio';
 
 export interface ParsedAuthor {
   name: string;
   dob?: string;
   id: string;
   wikipedia?: string;
+  description?: string;
 }
 
 export interface ParsedTag {
@@ -25,14 +28,14 @@ export interface ParsedBook {
   publisher?: string;
 }
 
-export const parseRdf = async (filePath: string): ParsedBook => {
+export const parseRdf = async (filePath: string): Promise<ParsedBook> => {
   const fileString = await readFile(filePath, 'utf-8');
 
   const parser = new XMLParser(fileString);
 
   return {
     id: parseBookId(parser),
-    authors: parseAuthors(parser),
+    authors: await parseAuthors(parser),
     rights: parseBookRights(parser),
     tags: parseTags(parser),
     title: parseBookTitle(parser),
@@ -43,34 +46,43 @@ export const parseRdf = async (filePath: string): ParsedBook => {
   };
 };
 
-const parseAuthors = (parser: XMLParser): ParsedAuthor[] => {
+const parseAuthors = async (parser: XMLParser): Promise<ParsedAuthor[]> => {
   const authors = parser.getAll(null, '//creator/agent');
 
-  return authors.map((author) => {
-    const webPageNode = parser.getFirst(author, './webpage');
+  return Promise.all(
+    authors.map(async (author) => {
+      const webPageNode = parser.getFirst(author, './webpage');
 
-    const wikipediaUrl = webPageNode?.attributes?.['rdf:resource'];
+      const wikipediaUrl = webPageNode?.attributes?.['rdf:resource'];
 
-    let wikipedia: string | undefined;
-    if (wikipediaUrl) {
-      // Clean up the Wikipedia URL to extract the ID
-      const wikipediaRegex =
-        /https?:\/\/(?:www\.)?en\.wikipedia\.org\/wiki\/(.+)/;
-      const match = wikipediaUrl.match(wikipediaRegex);
-      if (match) {
-        wikipedia = match[1];
+      let wikipedia: string | undefined;
+      if (wikipediaUrl) {
+        // Clean up the Wikipedia URL to extract the ID
+        const wikipediaRegex =
+          /https?:\/\/(?:www\.)?en\.wikipedia\.org\/wiki\/(.+)/;
+        const match = wikipediaUrl.match(wikipediaRegex);
+        if (match) {
+          wikipedia = match[1];
+        }
       }
-    }
 
-    const id = wikipedia ? wikipedia : parser.getFirstValue(author, './name');
+      let description = null;
 
-    return {
-      name: parser.getFirstValue(author, './name'),
-      dob: parser.getFirstValue(author, './birthdate'),
-      id: makeValueIntoId(id),
-      wikipedia: wikipediaUrl,
-    };
-  });
+      if (wikipediaUrl) {
+        description = await scrapeAuthorDescription(wikipediaUrl);
+      }
+
+      const id = wikipedia ? wikipedia : parser.getFirstValue(author, './name');
+
+      return {
+        name: parser.getFirstValue(author, './name'),
+        dob: parser.getFirstValue(author, './birthdate'),
+        id: makeValueIntoId(id),
+        wikipedia: wikipediaUrl,
+        description,
+      };
+    }),
+  );
 };
 
 const parseTags = (parser: XMLParser): ParsedTag[] => {
@@ -140,3 +152,44 @@ const makeValueIntoId = (value: string) => {
     .replace(/[^a-zA-Z0-9 -]/g, '')
     .replace(/ /g, '-');
 };
+
+async function scrapeAuthorDescription(wikipediaUrl) {
+  try {
+    // Fetch the Wikipedia page content
+    const response = await axios.get(wikipediaUrl);
+    const html = response.data;
+
+    // Load the HTML content into Cheerio
+    const $ = load(html);
+
+    // Find the element with the author's description
+    const descriptionElement = $('p')
+      .filter((i, el) => $(el).text().trim().length > 0)
+      .first();
+
+    if (descriptionElement.length > 0) {
+      // Extract and clean the description text
+      let descriptionText = descriptionElement.text();
+
+      // Remove reference markers like [1], [2], [a], [b], etc.
+      descriptionText = descriptionText.replace(/\[\d+[a-zA-Z]*\]/g, '');
+
+      // Remove content within parentheses that matches the specified pattern
+      descriptionText = descriptionText.replace(
+        /\([^)]*\.[a-zA-Z-]*[^)]*\)/g,
+        '',
+      );
+
+      // Replace line breaks and extra whitespace with single spaces
+      descriptionText = descriptionText.replace(/[\r\n]+/g, ' ').trim();
+
+      return descriptionText;
+    } else {
+      console.error('No author description found on the page');
+      return null;
+    }
+  } catch (error) {
+    console.error('An error occurred while scraping:', error.message);
+    return null;
+  }
+}
