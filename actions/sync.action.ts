@@ -6,6 +6,7 @@ import { MESSAGES } from '../lib/ui/messages';
 import { parseRdf } from '../lib/utils/parse-rdf/parse-rdf';
 import { authorWikipediaModifier } from '../lib/modifiers/author-wikipedia-modifier';
 import { applyModifiers } from '../lib/modifiers';
+import { getAllBooks } from '../lib/db/book';
 export class SyncAction extends AbstractAction {
   public async handle({ options }) {
     try {
@@ -20,6 +21,8 @@ export class SyncAction extends AbstractAction {
       const modifiedStuff = await applyModifiers([authorWikipediaModifier])(
         parsedStuff,
       );
+
+      console.log(await getAllBooks());
 
       console.log(modifiedStuff);
     } catch (e) {
