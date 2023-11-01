@@ -1,4 +1,4 @@
-// import { ParseBookException } from '@exceptions/parse-book.exception';
+import { ParseBookException } from '../../../exceptions/parse-book.exception';
 import { XMLParser } from '../../xml-parser/xml-parser';
 import { readFile } from 'fs/promises';
 
@@ -7,7 +7,7 @@ import * as z from 'zod';
 export const ParsedAuthorSchema = z.object({
   id: z.string(),
   name: z.string(),
-  dob: z.string().optional(),
+  dob: z.string().optional().nullable(),
   wikipedia: z.string().optional(),
   avatarUrl: z.string().optional(),
   description: z.string().optional(),
@@ -28,6 +28,7 @@ export const ParsedBookSchema = z.object({
   description: z.string().optional(),
   published: z.string().optional(),
   publisher: z.string().optional(),
+  coverUrl: z.string().optional().nullable(),
 });
 
 export interface ParsedAuthor {
@@ -54,6 +55,7 @@ export interface ParsedBook {
   description?: string;
   published?: string;
   publisher?: string;
+  coverUrl?: string;
 }
 
 export const parseRdf = async (filePath: string): Promise<ParsedBook> => {
@@ -61,8 +63,10 @@ export const parseRdf = async (filePath: string): Promise<ParsedBook> => {
 
   const parser = new XMLParser(fileString);
 
-  const book = {
-    id: parseBookId(parser),
+  const bookId = parseBookId(parser);
+
+  const book: ParsedBook = {
+    id: bookId,
     authors: await parseAuthors(parser),
     rights: parseBookRights(parser),
     tags: parseTags(parser),
@@ -71,13 +75,14 @@ export const parseRdf = async (filePath: string): Promise<ParsedBook> => {
     publisher: parseBookPublisher(parser),
     published: parseBookIssued(parser),
     htmlUrl: parseBookHtmlAddress(parser),
+    coverUrl: parseBookCoverAddress(parser),
   };
 
   try {
     ParsedBookSchema.parse(book);
     return book;
   } catch (e) {
-    throw new Error(e.message);
+    throw new ParseBookException({ error: e.message, book: bookId });
   }
 };
 
@@ -138,6 +143,35 @@ const parseBookHtmlAddress = (parser: XMLParser): string | null => {
     return null;
   }
   return ebookHtmlNode.attributes['rdf:about'];
+};
+
+const parseBookCoverAddress = (parser: XMLParser): string | null => {
+  const ebookHtmlNode = parser.getAll(
+    null,
+    `//ebook/hasFormat/file[format/Description/value/text() = 'image/jpeg']`,
+  );
+  if (!ebookHtmlNode?.length) {
+    return null;
+  }
+
+  const urls = ebookHtmlNode
+    .map((item) => item.attributes['rdf:about'] as string)
+    .filter((url) => url.includes('cover'))
+    .sort((a, b) => {
+      if (a.includes('medium')) {
+        return -1;
+      } else if (b.includes('medium')) {
+        return 1;
+      } else if (a.includes('small')) {
+        return -1;
+      } else if (b.includes('small')) {
+        return 1;
+      } else {
+        return 0;
+      }
+    });
+
+  return urls[0] ?? null;
 };
 
 const parseBookRights = (parser: XMLParser): string => {
