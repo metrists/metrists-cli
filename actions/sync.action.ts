@@ -7,6 +7,7 @@ import { parseRdf } from '../lib/utils/parse-rdf/parse-rdf';
 import { authorWikipediaModifier } from '../lib/modifiers/author-wikipedia-modifier';
 import { applyModifiers } from '../lib/modifiers';
 import { getAllBooks } from '../lib/db/book';
+import { createTagsHash } from '../lib/utils/create-tags-hash/create-tags-hash';
 export class SyncAction extends AbstractAction {
   public async handle({ options }) {
     try {
@@ -22,12 +23,14 @@ export class SyncAction extends AbstractAction {
         parsedStuff,
       );
 
-      console.log(await getAllBooks());
+      const tagsHash = await createTagsHash(
+        join(__dirname, '..', '..', 'data', 'tag-hashmap.json'),
+      );
 
-      console.log(modifiedStuff);
+      console.log(tagsHash);
     } catch (e) {
       if (e instanceof BaseException) {
-        //TODO: Report error
+        //TODO: Report error more elegantly
         console.error(chalk.red(e.getMessage()));
       } else {
         throw e;

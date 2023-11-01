@@ -2,7 +2,9 @@ import { PrismaClient, type profiles } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-export const createAuthor = async (authorData: profiles) => {
+export const createAuthor = async (
+  authorData: Omit<profiles, 'id' | 'created_at' | 'user_id'>,
+) => {
   return await prisma.profiles.create({ data: authorData });
 };
 

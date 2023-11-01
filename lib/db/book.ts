@@ -2,7 +2,7 @@ import { PrismaClient, type books } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-export const createBook = async (book: books) => {
+export const createBook = async (book: Omit<books, 'created_at' | 'id'>) => {
   return await prisma.books.create({ data: book });
 };
 

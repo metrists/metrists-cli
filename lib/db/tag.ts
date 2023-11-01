@@ -2,7 +2,7 @@ import { PrismaClient, type tags } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-export const createTag = async (tagData: tags) => {
+export const createTag = async (tagData: Omit<tags, 'created_at' | 'id'>) => {
   return await prisma.tags.create({ data: tagData });
 };
 

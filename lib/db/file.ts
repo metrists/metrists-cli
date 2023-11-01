@@ -2,7 +2,9 @@ import { PrismaClient, type files } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-export const createFile = async (fileData: files) => {
+export const createFile = async (
+  fileData: Omit<files, 'created_at' | 'id'>,
+) => {
   return await prisma.files.create({ data: fileData });
 };
 
