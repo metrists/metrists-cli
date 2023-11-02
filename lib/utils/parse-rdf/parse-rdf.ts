@@ -47,6 +47,8 @@ export interface ParsedTag {
 
 export interface ParsedBook {
   id: string;
+  language: string;
+  slug: string;
   authors: ParsedAuthor[];
   tags: ParsedTag[];
   title: string;
@@ -64,18 +66,21 @@ export const parseRdf = async (filePath: string): Promise<ParsedBook> => {
   const parser = new XMLParser(fileString);
 
   const bookId = parseBookId(parser);
+  const bookTitle = parseBookTitle(parser);
 
   const book: ParsedBook = {
     id: bookId,
+    slug: makeValueIntoId(bookTitle),
     authors: await parseAuthors(parser),
     rights: parseBookRights(parser),
     tags: parseTags(parser),
-    title: parseBookTitle(parser),
+    title: bookTitle,
     description: parseBookDescription(parser),
     publisher: parseBookPublisher(parser),
     published: parseBookIssued(parser),
     htmlUrl: parseBookHtmlAddress(parser),
     coverUrl: parseBookCoverAddress(parser),
+    language: parseBookLanguage(parser),
   };
 
   try {
@@ -172,6 +177,10 @@ const parseBookCoverAddress = (parser: XMLParser): string | null => {
     });
 
   return urls[0] ?? null;
+};
+
+const parseBookLanguage = (parser: XMLParser): string => {
+  return cleanValue(parser.getFirstValue(null, '//ebook/language'));
 };
 
 const parseBookRights = (parser: XMLParser): string => {

@@ -6,8 +6,8 @@ import { MESSAGES } from '../lib/ui/messages';
 import { parseRdf } from '../lib/utils/parse-rdf/parse-rdf';
 import { authorWikipediaModifier } from '../lib/modifiers/author-wikipedia-modifier';
 import { applyModifiers } from '../lib/modifiers';
-import { getAllBooks } from '../lib/db/book';
 import { createTagsHash } from '../lib/utils/create-tags-hash/create-tags-hash';
+import { createBookEntities } from '../lib/utils/create-entities/create-entities';
 export class SyncAction extends AbstractAction {
   public async handle({ options }) {
     try {
@@ -27,7 +27,9 @@ export class SyncAction extends AbstractAction {
         join(__dirname, '..', '..', 'data', 'tag-hashmap.json'),
       );
 
-      console.log(tagsHash);
+      const createdStuff = await createBookEntities(modifiedStuff, tagsHash);
+
+      console.log(createdStuff);
     } catch (e) {
       if (e instanceof BaseException) {
         //TODO: Report error more elegantly

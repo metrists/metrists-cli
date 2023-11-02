@@ -2,7 +2,9 @@ import { PrismaClient, type editions } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-export const createEdition = async (editionData: editions) => {
+export const createEdition = async (
+  editionData: Omit<editions, 'created_at' | 'id'>,
+) => {
   return await prisma.editions.create({ data: editionData });
 };
 
