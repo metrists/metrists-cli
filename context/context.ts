@@ -1,28 +1,41 @@
 import { ParsedBook } from '@lib/utils/parse-rdf/parse-rdf';
 import { MongoClient, Collection, ObjectId } from 'mongodb';
 
-interface Book extends Partial<Omit<ParsedBook, 'authors' | 'tags'>> {
+export interface Book extends Partial<Omit<ParsedBook, 'authors' | 'tags'>> {
   _id?: ObjectId;
   errors?: string[];
-  status: 'pending' | 'completed' | 'failed';
+  status:
+    | 'entities_pending'
+    | 'entities_completed'
+    | 'files_pending'
+    | 'completed'
+    | 'failed';
   authors?: Author[];
   tags?: Tag[];
+  reference?: string;
 }
 
 interface Tag {
   _id?: ObjectId;
   name: string;
+  reference?: string;
 }
 
 interface Author {
   _id?: ObjectId;
   name: string;
+  username?: string;
+}
+
+interface Cache {
+  _id?: ObjectId;
+  key: string;
+  value: string;
 }
 
 interface Context {
   books: Collection<Book>;
-  tags: Collection<Tag>;
-  authors: Collection<Author>;
+  cache: Collection<Cache>;
 }
 
 const uri = process.env.CONTEXT_DB_URL!;
@@ -36,9 +49,9 @@ class ContextSingleton {
       await client.connect();
       const database = client.db('mydatabase');
       const books = database.collection<Book>('books');
-      const tags = database.collection<Tag>('tags');
-      const authors = database.collection<Author>('authors');
-      ContextSingleton.instance = { books, tags, authors };
+      const cache = database.collection<Cache>('cache');
+
+      ContextSingleton.instance = { books, cache };
     }
     return ContextSingleton.instance;
   }
@@ -55,7 +68,9 @@ export async function createBook(book: Book): Promise<Book> {
   return getBook(result.insertedId);
 }
 
-export async function getOrCreateBook(book: Book): Promise<Book> {
+export async function getOrCreateBook(
+  book: Omit<Book, 'status'>,
+): Promise<Book> {
   const context = await ContextSingleton.getInstance();
   const existingBook = await context.books.findOne({
     id: book.id,
@@ -63,7 +78,7 @@ export async function getOrCreateBook(book: Book): Promise<Book> {
   if (existingBook) {
     return existingBook;
   }
-  return await createBook(book);
+  return await createBook({ status: 'entities_pending', ...book });
 }
 
 export async function getBook(id: ObjectId): Promise<Book | null> {
@@ -151,4 +166,15 @@ export async function reportError(
     { _id: id },
     { $push: { errors: error }, ...(status ? { status } : {}) },
   );
+}
+
+export async function setCache(key: string, value: string) {
+  const context = await ContextSingleton.getInstance();
+  await context.cache.updateOne({ key }, { $set: { value } }, { upsert: true });
+}
+
+export async function getCache(key: string) {
+  const context = await ContextSingleton.getInstance();
+  const result = await context.cache.findOne({ key });
+  return result?.value;
 }

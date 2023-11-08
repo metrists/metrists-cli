@@ -1,6 +1,7 @@
 import { EMOJIS } from './emojis';
 
 export const MESSAGES = {
+  NO_ID_PASSED: `No id passed ${EMOJIS.EYES}`,
   COULD_NOT_FIND_FETCHER: 'Could not find the fetcher file: [file_path]',
   COULD_NOT_PARSE_FETCHER: 'Could not parse the output of your fetcher file.',
   COULD_NOT_CREATE_FILE: `Could not create file [file_path]. [error]`,

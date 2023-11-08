@@ -11,40 +11,67 @@ import { createBookEntities } from '../lib/utils/create-entities/create-entities
 import { getOrCreateBook, reportError, updateBook } from '../context/context';
 export class SyncAction extends AbstractAction {
   public async handle({ options }) {
-    const id = options.book ?? '13';
+    const id = options.book;
 
-    const contextBook = await getOrCreateBook({
+    if (!id) {
+      console.log(chalk.red(MESSAGES.NO_ID_PASSED));
+      return;
+    } else if (id.includes(',')) {
+      const ids = id.split(',');
+      for (const id of ids) {
+        await this.processBook({ id });
+      }
+      return;
+    } else if (id.includes('-')) {
+      const [start, end] = id.split('-');
+      for (let i = parseInt(start); i <= parseInt(end); i++) {
+        await this.processBook({ id: i.toString() });
+      }
+      return;
+    }
+  }
+
+  protected async processBook({ id }) {
+    let contextBook = await getOrCreateBook({
       id,
-      status: 'pending',
     });
+
     try {
       const parsedStuff = await parseRdf(
         join(__dirname, '..', '..', 'data', 'rdf', id, `pg${id}.rdf`),
       );
 
-      updateBook(contextBook._id, parsedStuff);
+      contextBook = await updateBook(contextBook._id, parsedStuff);
 
       const modifiedStuff = await applyModifiers([authorWikipediaModifier])(
         parsedStuff,
       );
 
-      updateBook(contextBook._id, modifiedStuff);
+      contextBook = await updateBook(contextBook._id, modifiedStuff);
 
       const tagsHash = await createTagsHash(
         join(__dirname, '..', '..', 'data', 'tag-hashmap.json'),
       );
 
-      const createdStuff = await createBookEntities(modifiedStuff, tagsHash);
+      const createdStuff = await createBookEntities(
+        modifiedStuff,
+        tagsHash,
+        contextBook,
+      );
 
       console.log(createdStuff);
-      console.log(chalk.green(MESSAGES.SYNC_SUCCESSFUL));
+      console.log(
+        chalk.green(`Book #${id}`),
+        chalk.green(MESSAGES.SYNC_SUCCESSFUL),
+      );
+      return;
     } catch (e) {
       if (e instanceof BaseException) {
         //TODO: Report error more elegantly
         await reportError(contextBook._id, e.getMessage());
         console.error(chalk.red(e.getMessage()));
       } else {
-        throw e;
+        console.error(chalk.red(e.getMessage()));
       }
     }
   }

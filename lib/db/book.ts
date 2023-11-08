@@ -14,7 +14,10 @@ export const getAllBooks = async () => {
   return await prisma.books.findMany();
 };
 
-export const updateBook = async (bookToFind: Partial<books>, book: books) => {
+export const updateBook = async (
+  bookToFind: Partial<books>,
+  book: Partial<Omit<books, 'created_at' | 'id'>>,
+) => {
   return await prisma.books.updateMany({ where: bookToFind, data: book });
 };
 

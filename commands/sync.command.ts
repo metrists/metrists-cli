@@ -10,7 +10,7 @@ export class SyncCommand extends AbstractCommand {
       .option('-b, --book [book]', 'Id of the book to sync')
       .action(async (command: Command) => {
         const { book } = command;
-        await this.action.handle({ options: { book } });
+        return await this.action.handle({ options: { book } });
       });
   }
 }

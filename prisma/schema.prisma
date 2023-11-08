@@ -274,19 +274,19 @@ model users {
 }
 
 model book_tags {
-  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  created_at DateTime? @default(now()) @db.Timestamptz(6)
-  book_id    String?   @db.Uuid
-  tag_id     String?   @db.Uuid
-  books      books?    @relation(fields: [book_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  tags       tags?     @relation(fields: [tag_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  book_id    String?  @db.Uuid
+  tag_id     String?  @db.Uuid
+  books      books?   @relation(fields: [book_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  tags       tags?    @relation(fields: [tag_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@schema("public")
 }
 
 model books {
   id            String          @id(map: "book_pkey") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  created_at    DateTime?       @default(now()) @db.Timestamptz(6)
+  created_at    DateTime        @default(now()) @db.Timestamptz(6)
   updated_at    DateTime        @db.Timestamptz(6)
   published_at  DateTime?       @db.Timestamp(6)
   title         String          @db.VarChar
@@ -318,7 +318,7 @@ model chapters {
 
 model editions {
   id            String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  created_at    DateTime?  @default(now()) @db.Timestamptz(6)
+  created_at    DateTime   @default(now()) @db.Timestamptz(6)
   updated_at    DateTime   @db.Timestamptz(6)
   publicized_at DateTime?  @db.Timestamptz(6)
   locale        String     @default("") @db.VarChar
@@ -331,7 +331,7 @@ model editions {
 
 model files {
   id          String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  created_at  DateTime?  @default(now()) @db.Timestamptz(6)
+  created_at  DateTime   @default(now()) @db.Timestamptz(6)
   updated_at  DateTime   @db.Timestamptz(6)
   storage_key String
   bucket      String     @db.VarChar
@@ -351,19 +351,19 @@ model pre_launch_signups {
 }
 
 model profile_books {
-  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  created_at DateTime? @default(now()) @db.Timestamptz(6)
-  profile_id String    @db.Uuid
-  book_id    String    @db.Uuid
-  books      books     @relation(fields: [book_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  profiles   profiles  @relation(fields: [profile_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  profile_id String   @db.Uuid
+  book_id    String   @db.Uuid
+  books      books    @relation(fields: [book_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  profiles   profiles @relation(fields: [profile_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@schema("public")
 }
 
 model profiles {
   id             String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  created_at     DateTime?       @default(now()) @db.Timestamptz(6)
+  created_at     DateTime        @default(now()) @db.Timestamptz(6)
   updated_at     DateTime?       @db.Timestamptz(6)
   name           String          @db.VarChar
   bio            String?
@@ -379,7 +379,7 @@ model profiles {
 
 model tags {
   id         String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  created_at DateTime?   @default(now()) @db.Timestamptz(6)
+  created_at DateTime    @default(now()) @db.Timestamptz(6)
   updated_at DateTime    @db.Timestamptz(6)
   title      String      @db.VarChar
   reference  String      @unique @db.VarChar
