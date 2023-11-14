@@ -11,7 +11,10 @@ import {
   setCache,
   getCache,
 } from '../../../context/context';
-import type { ParsedBook } from '../parse-rdf/parse-rdf';
+import type { ParsedAuthor, ParsedBook } from '../parse-rdf/parse-rdf';
+
+export const getAuthorCacheKey = (author: ParsedAuthor) =>
+  `author-${author.id}${author.dob ? `-${author.dob}` : ''}`;
 
 export const createBookEntities = async (
   book: ParsedBook,
@@ -58,9 +61,7 @@ export const createBookEntities = async (
 
   const createdAuthors = await Promise.all(
     authors.map(async (author) => {
-      const authorCacheKey = `author-${author.id}${
-        author.dob ? `-${author.dob}` : ''
-      }`;
+      const authorCacheKey = getAuthorCacheKey(author);
 
       const cachedAuthor = await getCache(authorCacheKey);
 
@@ -68,7 +69,7 @@ export const createBookEntities = async (
         return await getAuthor({ username: cachedAuthor });
       }
 
-      const authorId = addCodeToName(author.name);
+      const authorId = addCodeToName(createUsername(author.name));
 
       const avatar = author.avatarUrl
         ? await createFile({
@@ -188,4 +189,9 @@ function addCodeToName(name) {
     code += chars[Math.floor(Math.random() * chars.length)];
   }
   return `${name}-${code}`;
+}
+
+function createUsername(name) {
+  const cleanedName = name.replace(/[^a-zA-Z0-9\s]/g, '').trim();
+  return cleanedName.toLowerCase().replace(/\s+/g, '-');
 }

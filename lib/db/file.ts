@@ -29,3 +29,7 @@ export const updateFile = async (
 export const deleteFile = async (fileToFind: Partial<files>) => {
   return await prisma.files.deleteMany({ where: fileToFind });
 };
+
+export const deleteAllFiles = async () => {
+  return await prisma.files.deleteMany();
+};

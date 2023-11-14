@@ -26,3 +26,7 @@ export const updateBookTag = async (
 export const deleteBookTag = async (tagToFind: Partial<book_tags>) => {
   return await prisma.book_tags.deleteMany({ where: tagToFind });
 };
+
+export const deleteAllBookTags = async () => {
+  return await prisma.book_tags.deleteMany();
+};

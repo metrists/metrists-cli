@@ -24,3 +24,7 @@ export const updateBook = async (
 export const deleteBook = async (bookToFind: Partial<books>) => {
   return await prisma.books.deleteMany({ where: bookToFind });
 };
+
+export const deleteAllBooks = async () => {
+  return await prisma.books.deleteMany();
+};

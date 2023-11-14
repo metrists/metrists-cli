@@ -29,3 +29,7 @@ export const updateEditions = async (
 export const deleteEditions = async (editionToFind: Partial<editions>) => {
   return await prisma.editions.deleteMany({ where: editionToFind });
 };
+
+export const deleteAllEditions = async () => {
+  return await prisma.editions.deleteMany();
+};

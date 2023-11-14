@@ -9,6 +9,7 @@ import { applyModifiers } from '../lib/modifiers';
 import { createTagsHash } from '../lib/utils/create-tags-hash/create-tags-hash';
 import { createBookEntities } from '../lib/utils/create-entities/create-entities';
 import { getOrCreateBook, reportError, updateBook } from '../context/context';
+import { downloadFiles } from '../lib/utils/download-files/download-files';
 export class SyncAction extends AbstractAction {
   public async handle({ options }) {
     const id = options.book;
@@ -28,6 +29,8 @@ export class SyncAction extends AbstractAction {
         await this.processBook({ id: i.toString() });
       }
       return;
+    } else {
+      await this.processBook({ id });
     }
   }
 
@@ -62,8 +65,17 @@ export class SyncAction extends AbstractAction {
       console.log(createdStuff);
       console.log(
         chalk.green(`Book #${id}`),
-        chalk.green(MESSAGES.SYNC_SUCCESSFUL),
+        chalk.green(MESSAGES.ENTITIES_CREATED),
       );
+
+      const { authorPaths, coverPath, htmlPath } = await downloadFiles(
+        join(__dirname, '..', '..', '.cache'),
+        parsedStuff,
+        contextBook,
+      );
+
+      console.log({ authorPaths, coverPath, htmlPath });
+
       return;
     } catch (e) {
       if (e instanceof BaseException) {

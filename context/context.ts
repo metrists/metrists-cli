@@ -8,6 +8,7 @@ export interface Book extends Partial<Omit<ParsedBook, 'authors' | 'tags'>> {
     | 'entities_pending'
     | 'entities_completed'
     | 'files_pending'
+    | 'files_downloaded'
     | 'completed'
     | 'failed';
   authors?: Author[];
@@ -59,6 +60,12 @@ class ContextSingleton {
 
 export async function createContext(): Promise<Context> {
   return ContextSingleton.getInstance();
+}
+
+export async function clearContext() {
+  const context = await ContextSingleton.getInstance();
+  await context.books.deleteMany({});
+  await context.cache.deleteMany({});
 }
 
 export async function createBook(book: Book): Promise<Book> {

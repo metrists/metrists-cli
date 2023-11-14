@@ -29,3 +29,7 @@ export const updateAuthor = async (
 export const deleteAuthor = async (authorToFind: Partial<profiles>) => {
   return await prisma.profiles.deleteMany({ where: authorToFind });
 };
+
+export const deleteAllAuthors = async () => {
+  return await prisma.profiles.deleteMany();
+};

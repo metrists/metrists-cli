@@ -29,3 +29,7 @@ export const updateAuthorBook = async (
 export const deleteAuthorBook = async (tagToFind: Partial<profile_books>) => {
   return await prisma.profile_books.deleteMany({ where: tagToFind });
 };
+
+export const deleteAllAuthorBooks = async () => {
+  return await prisma.profile_books.deleteMany();
+};

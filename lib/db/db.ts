@@ -6,4 +6,9 @@ if (!prisma) {
 }
 prisma.$connect();
 
-export { prisma };
+function getIsDbLocal() {
+  const connectionString = process.env.DATABASE_URL;
+  return connectionString?.includes('localhost');
+}
+
+export { prisma, getIsDbLocal };
