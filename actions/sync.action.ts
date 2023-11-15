@@ -10,6 +10,7 @@ import { createTagsHash } from '../lib/utils/create-tags-hash/create-tags-hash';
 import { createBookEntities } from '../lib/utils/create-entities/create-entities';
 import { getOrCreateBook, reportError, updateBook } from '../context/context';
 import { downloadFiles } from '../lib/utils/download-files/download-files';
+import { convertBookToMarkdown } from '../lib/utils/convert-to-markdown/convert-to-markdown';
 export class SyncAction extends AbstractAction {
   public async handle({ options }) {
     const id = options.book;
@@ -76,6 +77,13 @@ export class SyncAction extends AbstractAction {
 
       console.log({ authorPaths, coverPath, htmlPath });
 
+      const dividedIntoChapters = await convertBookToMarkdown(
+        htmlPath,
+        parsedStuff,
+      );
+
+      console.log(dividedIntoChapters);
+
       return;
     } catch (e) {
       if (e instanceof BaseException) {
@@ -83,7 +91,7 @@ export class SyncAction extends AbstractAction {
         await reportError(contextBook._id, e.getMessage());
         console.error(chalk.red(e.getMessage()));
       } else {
-        console.error(chalk.red(e.getMessage()));
+        console.error(chalk.red(e.message));
       }
     }
   }
