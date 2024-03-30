@@ -1,5 +1,8 @@
-import { Exception } from '../interfaces/exception.interface';
 import { MESSAGES } from '../lib/ui';
+
+export interface Exception {
+  MESSAGE_TITLE?: keyof typeof MESSAGES;
+}
 
 export abstract class BaseException extends Error implements Exception {
   MESSAGE_TITLE: keyof typeof MESSAGES;

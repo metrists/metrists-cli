@@ -14,16 +14,38 @@ export class WatchAction extends AbstractAction {
   public async handle({ options }) {
     const outputPath = join(process.cwd(), OUTDIR);
     await this.createOutputDirectoryIfNotExists(outputPath);
+    const outputFilesPath = join(outputPath, OUT_REPOSITORY_FILES_PATH);
+    await spawn('rsync', ['a', '--exclude', outputPath, process.cwd(), outputFilesPath], {
+      cwd: process.cwd(),
+    });
+    const devProcess = await this.startDevServer(outputPath);
+    // this.watchFiles(process.cwd(), async (event, path) => {
+    //   if (path.startsWith(join(process.cwd(), OUTDIR))) {
+    //     return;
+    //   }
+    //   const relativePath = path.replace(process.cwd(), '');
+    //   const outputPathToProject = join(OUTDIR, relativePath);
+    //   const outputPath = join(outputPathToProject, OUT_REPOSITORY_FILES_PATH);
+    //   await this.createOutputDirectoryIfNotExists(outputPath);
+    //   await this.copyFile(path, join(OUTDIR, relativePath));
+    // });
+  }
 
-    this.watchFiles(process.cwd(), async (event, path) => {
-      if (path.startsWith(join(process.cwd(), OUTDIR))) {
-        return;
-      }
-      const relativePath = path.replace(process.cwd(), '');
-      const outputPathToProject = join(OUTDIR, relativePath);
-      const outputPath = join(outputPathToProject, OUT_REPOSITORY_FILES_PATH);
-      await this.createOutputDirectoryIfNotExists(outputPath);
-      await this.copyFile(path, join(OUTDIR, relativePath));
+  protected async startDevServer(outputPath) {
+    return new Promise((resolve, reject) => {
+      const devServerProcess = spawn('npm', ['run', 'dev'], { cwd: outputPath });
+      devServerProcess.stdout.on('data', (data) => {
+        console.log(chalk.green(data.toString()));
+      });
+      devServerProcess.stderr.on('data', (data) => {
+        console.log(chalk.red(data.toString()));
+      });
+      devServerProcess.on('close', async (code) => {
+        if (code === 0) {
+          console.log(chalk.green('Started the development server successfully'));
+        }
+      });
+      resolve(devServerProcess);
     });
   }
 
@@ -37,7 +59,6 @@ export class WatchAction extends AbstractAction {
       });
       cloneProcess.stderr.on('data', (data) => {
         console.log(chalk.red(data.toString()));
-        throw new Error('Failed to clone the repository');
       });
       cloneProcess.on('close', async (code) => {
         if (code === 0) {
@@ -65,7 +86,7 @@ export class WatchAction extends AbstractAction {
     return await mkdir(directoryPath, { recursive: true });
   }
 
-  protected async pathExists(path: string) {
+  protected pathExists(path: string) {
     return existsSync(path);
   }
 
