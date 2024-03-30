@@ -1,8 +1,8 @@
-import { CommanderStatic } from 'commander';
-import { AbstractAction } from '../actions/abstract.action';
+import { Command, CommanderStatic } from 'commander';
 
 export abstract class AbstractCommand {
-  constructor(protected action: AbstractAction) {}
+  constructor() {}
 
-  public abstract load(program: CommanderStatic): void;
+  public abstract load(program: CommanderStatic): Command;
+  public abstract handle(command: Command): Promise<void>;
 }
