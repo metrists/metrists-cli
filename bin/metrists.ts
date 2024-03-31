@@ -3,10 +3,7 @@ import * as commander from 'commander';
 import { CommanderStatic } from 'commander';
 import * as path from 'path';
 import { CommandLoader } from '../commands';
-import {
-  loadLocalBinCommandLoader,
-  localBinExists,
-} from '../lib/utils/local-binaries';
+import { loadLocalBinCommandLoader, localBinExists } from '../lib/utils/local-binaries.util';
 
 const bootstrap = () => {
   const currentWorkingDirectory = __dirname;
@@ -14,9 +11,7 @@ const bootstrap = () => {
   const packageJsonPaths = path.join(
     ...[
       currentWorkingDirectory,
-      ...(currentWorkingDirectory.search('/dist') === -1
-        ? ['..']
-        : ['..', '..']),
+      ...(currentWorkingDirectory.search('/dist') === -1 ? ['..'] : ['..', '..']),
       'package.json',
     ],
   );

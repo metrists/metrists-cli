@@ -1,13 +1,8 @@
 import { existsSync } from 'fs';
 import { join, posix } from 'path';
-import { CommandLoader } from '../../../commands';
+import { CommandLoader } from '../../commands';
 
-const localBinPathSegments = [
-  process.cwd(),
-  'node_modules',
-  '@metrists',
-  'cli',
-];
+const localBinPathSegments = [process.cwd(), 'node_modules', '@metrists', 'cli'];
 
 export function localBinExists() {
   return existsSync(join(...localBinPathSegments));
