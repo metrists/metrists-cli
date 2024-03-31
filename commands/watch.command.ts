@@ -1,15 +1,16 @@
-import { CommanderStatic, Command } from 'commander';
-import { AbstractCommand } from './abstract.command';
 import { join } from 'path';
 import { spawn } from 'child_process';
 import { copyFile, mkdir } from 'fs/promises';
-import { existsSync } from 'fs';
+import { existsSync, readFile } from 'fs';
 import * as chalk from 'chalk';
 import { watch } from 'chokidar';
+import { CommanderStatic, Command } from 'commander';
+import { AbstractCommand } from './abstract.command';
 
 const OUTDIR = '.metrists';
 const OUT_REPOSITORY = 'https://github.com/one-aalam/remix-ink';
 const OUT_REPOSITORY_FILES_PATH = '/contents/posts/';
+
 export class WatchCommand extends AbstractCommand {
   public load(program: CommanderStatic) {
     return program
@@ -21,21 +22,16 @@ export class WatchCommand extends AbstractCommand {
   public async handle(command: Command) {
     const outputPath = join(process.cwd(), OUTDIR);
     await this.createOutputDirectoryIfNotExists(outputPath);
-    const outputFilesPath = join(outputPath, OUT_REPOSITORY_FILES_PATH);
-    await spawn('rsync', ['a', '--exclude', outputPath, process.cwd(), outputFilesPath], {
-      cwd: process.cwd(),
+    this.watchFiles(process.cwd(), async (event, path) => {
+      if (path.startsWith(join(process.cwd(), OUTDIR))) {
+        return;
+      }
+      const relativePath = path.replace(process.cwd(), '');
+      const outputPathToProject = join(OUTDIR, relativePath);
+      const outputPath = join(outputPathToProject, OUT_REPOSITORY_FILES_PATH);
+      await this.createOutputDirectoryIfNotExists(outputPath);
+      await this.copyFile(path, join(OUTDIR, relativePath));
     });
-    const devProcess = await this.startDevServer(outputPath);
-    // this.watchFiles(process.cwd(), async (event, path) => {
-    //   if (path.startsWith(join(process.cwd(), OUTDIR))) {
-    //     return;
-    //   }
-    //   const relativePath = path.replace(process.cwd(), '');
-    //   const outputPathToProject = join(OUTDIR, relativePath);
-    //   const outputPath = join(outputPathToProject, OUT_REPOSITORY_FILES_PATH);
-    //   await this.createOutputDirectoryIfNotExists(outputPath);
-    //   await this.copyFile(path, join(OUTDIR, relativePath));
-    // });
   }
 
   protected async startDevServer(outputPath) {
