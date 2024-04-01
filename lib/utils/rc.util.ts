@@ -1,34 +1,37 @@
 import { readFileIfExists } from './fs.util';
 
-export interface IRcFile {
-  outDir?: string;
+export interface IRcFileComplete {
+  outDir: string;
+  template: {
+    repository: string;
+    filesPath: string;
+  };
 }
 
+export type IRcFile = Partial<IRcFileComplete>;
+
 export const RC_FILE_NAME = '.metristsrc';
+
+export const DEFAULT_RC_FILE: IRcFileComplete = {
+  outDir: '.metrists',
+  template: {
+    repository: 'https://github.com/one-aalam/remix-ink',
+    filesPath: '/content/posts/',
+  },
+};
 
 export async function readRcFile(basePath: string) {
   return readFileIfExists<IRcFile>(basePath, RC_FILE_NAME);
 }
 export type GetFieldValue<TData, TResult> = (data: TData) => TResult;
 
-export function getRcPathGetter(basePath: string) {
-  async function getConfig<TResult>(callback: GetFieldValue<IRcFile, TResult>): Promise<TResult>;
+export type GetRcFieldValue<TData> = GetFieldValue<IRcFile, TData>;
 
-  async function getConfig<
-    TResults extends Array<GetFieldValue<IRcFile, any>>,
-    TResultTuple extends any[],
-  >(callbacks: [...TResults]): Promise<{ [K in keyof TResults]: ReturnType<TResults[K]> }>;
+export async function getConfigGetter(basePath: string) {
+  const data = await readRcFile(basePath);
 
-  async function getConfig<TResults extends Array<GetFieldValue<IRcFile, any>>>(
-    callbacks: TResults | GetFieldValue<IRcFile, any>,
-  ): Promise<any> {
-    const data = await readRcFile(basePath);
-    if (typeof callbacks === 'function') {
-      return callbacks(data);
-    }
-
-    return Promise.all(callbacks.map((callback) => callback(data))) as any;
+  function getConfig<TResult>(callback: GetRcFieldValue<TResult>, defaultValue?: TResult): TResult {
+    return callback(data) ?? defaultValue ?? callback(DEFAULT_RC_FILE);
   }
-
   return getConfig;
 }
