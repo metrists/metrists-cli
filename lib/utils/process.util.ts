@@ -1,29 +1,34 @@
-import { spawn } from 'child_process';
+import { spawn, type ChildProcess } from 'child_process';
 import { gray } from 'chalk';
 
-export function spawnAndWait(command: string, args: string[], cwd: string) {
-  return new Promise((res, rej) => {
-    const childProcess = spawn(command, args, {
-      cwd,
-      stdio: 'inherit',
-      env: { ...process.env },
-      shell: true,
-      windowsHide: true,
-    });
+type SpawnParams = Parameters<typeof spawn>;
 
-    childProcess.stderr.on('data', (data) => {
-      console.error(gray(data.toString()));
-    });
+export async function spawnAndWait(
+  command: SpawnParams[0],
+  args: SpawnParams[1],
+  cwd: Partial<SpawnParams[2]> = {},
+): Promise<ChildProcess> {
+  const childProcess = spawn(command, args, {
+    env: { ...process.env },
+    shell: true,
+    windowsHide: true,
+    ...cwd,
+  });
 
-    childProcess.stdout.on('data', (data) => {
-      console.log(gray(data.toString()));
-    });
+  childProcess.stderr.on('data', (data) => {
+    console.error(gray(data.toString()));
+  });
 
+  childProcess.stdout.on('data', (data) => {
+    console.log(gray(data.toString()));
+  });
+
+  return new Promise<ChildProcess>(async (res, rej) => {
     childProcess.on('exit', (code) => {
       if (code !== 0) {
-        rej({ code: code });
+        rej(childProcess);
       } else {
-        res({ code: 0 });
+        res(childProcess);
       }
     });
   });

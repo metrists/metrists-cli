@@ -1,11 +1,12 @@
 import { CommanderStatic, Command } from 'commander';
-import { ConfigAwareCommand } from './config-aware.command';
-import { join } from 'path';
-import { spawn } from 'child_process';
-import { copyFile, mkdir } from 'fs/promises';
+import { join, resolve } from 'path';
+import { copyFile, mkdir, readdir } from 'fs/promises';
 import { existsSync } from 'fs';
 import * as chalk from 'chalk';
 import { watch } from 'chokidar';
+import { ConfigAwareCommand } from './config-aware.command';
+import { spawnAndWait } from '../lib/utils/process.util';
+import { getContentsRecursively } from '../lib/utils/fs.util';
 
 export class WatchCommand extends ConfigAwareCommand {
   public load(program: CommanderStatic) {
@@ -18,20 +19,28 @@ export class WatchCommand extends ConfigAwareCommand {
   public async handle(command: Command) {
     await this.loadConfig();
     const outDir = this.getConfig((rc) => rc?.outDir);
-    const templatePath = join(process.cwd(), outDir);
+
+    const workingDirectory = process.cwd();
+
+    const templatePath = join(workingDirectory, outDir);
     const templateRepository = this.getConfig((rc) => rc?.template?.repository);
 
     const templateFilesPath = this.getConfig((rc) => rc?.template?.filesPath);
     const templateOutputPath = join(templatePath, templateFilesPath);
-
-    await this.createOutputDirectoryIfNotExists(templatePath, templateRepository, outDir);
+    await this.createOutputDirectoryIfNotExists(
+      templatePath,
+      templateRepository,
+      templateOutputPath,
+      outDir,
+      workingDirectory,
+    );
 
     const devProcess = await this.startDevServer(templatePath);
-    this.watchFiles(process.cwd(), async (event, path) => {
-      if (path.startsWith(join(process.cwd(), outDir))) {
+    this.watchFiles(workingDirectory, async (event, path) => {
+      if (this.shouldIncludeFile(path, templateOutputPath)) {
         return;
       }
-      const filePathRelativeToRootWithFileName = path.replace(process.cwd(), '');
+      const filePathRelativeToRootWithFileName = path.replace(workingDirectory, '');
       const filePathRelativeToRoot = filePathRelativeToRootWithFileName.substring(
         0,
         filePathRelativeToRootWithFileName.lastIndexOf('/'),
@@ -39,78 +48,71 @@ export class WatchCommand extends ConfigAwareCommand {
       const pathTheFileNeedsToCopyInto = join(templateOutputPath, filePathRelativeToRoot);
       const finalFilePath = join(templateOutputPath, filePathRelativeToRootWithFileName);
 
-      console.log({
-        filePathRelativeToRootWithFileName,
-        filePathRelativeToRoot,
-        pathTheFileNeedsToCopyInto,
-        finalFilePath,
-      });
-
-      await this.createDirectoryIfNotExists(pathTheFileNeedsToCopyInto);
       await this.copyFile(path, finalFilePath);
     });
   }
 
   protected async startDevServer(outputPath) {
-    return new Promise((resolve, reject) => {
-      const devServerProcess = spawn('npm', ['run', 'dev'], { cwd: outputPath });
-      devServerProcess.stdout.on('data', (data) => {
-        console.log(chalk.green(data.toString()));
-      });
-      devServerProcess.stderr.on('data', (data) => {
-        console.log(chalk.red(data.toString()));
-      });
-      devServerProcess.on('close', async (code) => {
-        if (code === 0) {
-          console.log(chalk.green('Started the development server successfully'));
-        }
-      });
-      resolve(devServerProcess);
+    return spawnAndWait('npm', ['run', 'dev'], {
+      cwd: outputPath,
     });
   }
 
   protected async createOutputDirectoryIfNotExists(
     outputPath: string,
     templateRepository: string,
+    templateOutputPath: string,
     outDir: string,
+    workingDirectory: string,
   ) {
-    return new Promise(async (resolve, reject) => {
-      if (!this.pathExists(outputPath)) {
-        //Clone the git repository, install the dependencies and return the process so that it can be terminated when the watch mode is stopped
-        console.log(chalk.green('Cloning the repository...'));
-        const cloneProcess = spawn('git', ['clone', templateRepository, outDir]);
-        cloneProcess.stdout.on('data', (data) => {
-          console.log(chalk.green(data.toString()));
-        });
-        cloneProcess.stderr.on('data', (data) => {
-          console.log(chalk.red(data.toString()));
-        });
-        cloneProcess.on('close', async (code) => {
-          if (code === 0) {
-            console.log(chalk.green('Cloned the repository successfully'));
-            console.log(chalk.green('Installing the dependencies...'));
-            const installProcess = spawn('npm', ['install'], { cwd: outDir });
-            installProcess.stdout.on('data', (data) => {
-              console.log(chalk.green(data.toString()));
-            });
-            installProcess.stderr.on('data', (data) => {
-              console.log(chalk.red(data.toString()));
-              reject(1);
-            });
-            installProcess.on('close', async (code) => {
-              if (code === 0) {
-                console.log(chalk.green('Installed the dependencies successfully'));
-                resolve(0);
-              } else {
-                reject(1);
-              }
-            });
-          }
-        });
-      } else {
-        resolve(0);
+    if (!this.pathExists(outputPath)) {
+      const clone = await spawnAndWait('git', ['clone', templateRepository, outDir]);
+      if (clone.exitCode !== 0) {
+        process.exit(clone.exitCode);
+      }
+
+      const install = await spawnAndWait('npm', ['install'], { cwd: outDir });
+      if (install.exitCode !== 0) {
+        process.exit(install.exitCode);
+      }
+      console.log(chalk.green('Installed the dependencies successfully'));
+    } else {
+      this.copyAllFilesToOutputDirectory(workingDirectory, templateOutputPath, (filePath) =>
+        this.shouldIncludeFile(filePath, outputPath),
+      );
+    }
+  }
+
+  protected shouldIncludeFile(filePath: string, outputPath: string) {
+    return filePath.endsWith('.md') && !filePath.includes(outputPath);
+  }
+
+  protected copyAllFilesToOutputDirectory(
+    directoryToLookAt: string,
+    outputDirectory: string,
+    shouldInclude: (filePath: string) => boolean,
+  ) {
+    const allFilesPromises = [];
+    this.performOnAllFilesInDirectory(directoryToLookAt, async (file) => {
+      if (shouldInclude(file)) {
+        const relativePath = file.replace(directoryToLookAt, '');
+        const outputPath = join(outputDirectory, relativePath);
+        allFilesPromises.push(this.copyFile(file, outputPath));
       }
     });
+
+    return Promise.all(allFilesPromises);
+  }
+
+  protected async performOnAllFilesInDirectory(
+    directoryPath: string,
+    cb: (filePath: string) => Promise<void>,
+  ) {
+    const resultPromises = [];
+    for await (const file of getContentsRecursively(directoryPath)) {
+      resultPromises.push(cb(file));
+    }
+    return Promise.all(resultPromises);
   }
 
   protected async createDirectory(directoryPath: string) {
@@ -133,7 +135,6 @@ export class WatchCommand extends ConfigAwareCommand {
 
   protected watchFiles(resolvePath: string, cb: (event: string, path: string) => Promise<void>) {
     watch(resolvePath, { persistent: true, ignoreInitial: true }).on('all', (event, path) => {
-      this.displayBanner();
       cb(event, path);
     });
   }
