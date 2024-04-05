@@ -27,13 +27,17 @@ export class WatchCommand extends ConfigAwareCommand {
 
     const templateFilesPath = this.getConfig((rc) => rc?.template?.filesPath);
     const templateOutputPath = join(templatePath, templateFilesPath);
-    await this.createOutputDirectoryIfNotExists(
-      templatePath,
-      templateRepository,
-      templateOutputPath,
-      outDir,
-      workingDirectory,
-    );
+
+    if (this.pathExists(templatePath)) {
+      this.copyAllFilesToOutputDirectory(workingDirectory, templateOutputPath, (filePath) =>
+        this.shouldIncludeFile(filePath, templatePath),
+      );
+    } else {
+      await this.spawnAndWaitAndStopIfError('git', ['clone', templateRepository, outDir]);
+      console.log(chalk.green('Successfully Cloned Template'));
+      await this.spawnAndWaitAndStopIfError('npm', ['install'], { cwd: outDir });
+      console.log(chalk.green('Successfully Installed Dependencies'));
+    }
 
     const devProcess = await this.startDevServer(templatePath);
     this.watchFiles(workingDirectory, async (event, path) => {
@@ -58,28 +62,10 @@ export class WatchCommand extends ConfigAwareCommand {
     });
   }
 
-  protected async createOutputDirectoryIfNotExists(
-    outputPath: string,
-    templateRepository: string,
-    templateOutputPath: string,
-    outDir: string,
-    workingDirectory: string,
-  ) {
-    if (!this.pathExists(outputPath)) {
-      const clone = await spawnAndWait('git', ['clone', templateRepository, outDir]);
-      if (clone.exitCode !== 0) {
-        process.exit(clone.exitCode);
-      }
-
-      const install = await spawnAndWait('npm', ['install'], { cwd: outDir });
-      if (install.exitCode !== 0) {
-        process.exit(install.exitCode);
-      }
-      console.log(chalk.green('Installed the dependencies successfully'));
-    } else {
-      this.copyAllFilesToOutputDirectory(workingDirectory, templateOutputPath, (filePath) =>
-        this.shouldIncludeFile(filePath, outputPath),
-      );
+  protected async spawnAndWaitAndStopIfError(...args: Parameters<typeof spawnAndWait>) {
+    const childProcess = await spawnAndWait(...args);
+    if (childProcess.exitCode) {
+      process.exit(childProcess.exitCode);
     }
   }
 
