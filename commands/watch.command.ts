@@ -1,6 +1,6 @@
 import { CommanderStatic, Command } from 'commander';
-import { join, resolve } from 'path';
-import { copyFile, mkdir, readdir } from 'fs/promises';
+import { join } from 'path';
+import { copyFile, mkdir, unlink } from 'fs/promises';
 import { existsSync } from 'fs';
 import * as chalk from 'chalk';
 import { watch } from 'chokidar';
@@ -9,6 +9,11 @@ import { spawnAndWait } from '../lib/utils/process.util';
 import { getContentsRecursively } from '../lib/utils/fs.util';
 
 export class WatchCommand extends ConfigAwareCommand {
+  protected outDir: string;
+  protected workingDirectory: string;
+  protected templatePath: string;
+  protected templateOutputPath: string;
+
   public load(program: CommanderStatic) {
     return program
       .command('watch')
@@ -20,17 +25,19 @@ export class WatchCommand extends ConfigAwareCommand {
     await this.loadConfig();
     const outDir = this.getConfig((rc) => rc?.outDir);
 
-    const workingDirectory = process.cwd();
+    this.workingDirectory = process.cwd();
 
-    const templatePath = join(workingDirectory, outDir);
+    this.templatePath = join(this.workingDirectory, outDir);
     const templateRepository = this.getConfig((rc) => rc?.template?.repository);
 
     const templateFilesPath = this.getConfig((rc) => rc?.template?.filesPath);
-    const templateOutputPath = join(templatePath, templateFilesPath);
+    this.templateOutputPath = join(this.templatePath, templateFilesPath);
 
-    if (this.pathExists(templatePath)) {
-      this.copyAllFilesToOutputDirectory(workingDirectory, templateOutputPath, (filePath) =>
-        this.shouldIncludeFile(filePath, templatePath),
+    if (this.pathExists(this.templatePath)) {
+      this.copyAllFilesToOutputDirectory(
+        this.workingDirectory,
+        this.templateOutputPath,
+        (filePath) => this.shouldIncludeFile(filePath),
       );
     } else {
       await this.spawnAndWaitAndStopIfError('git', ['clone', templateRepository, outDir]);
@@ -39,26 +46,30 @@ export class WatchCommand extends ConfigAwareCommand {
       console.log(chalk.green('Successfully Installed Dependencies'));
     }
 
-    const devProcess = await this.startDevServer(templatePath);
-    this.watchFiles(workingDirectory, async (event, path) => {
-      if (this.shouldIncludeFile(path, templateOutputPath)) {
-        return;
-      }
-      const filePathRelativeToRootWithFileName = path.replace(workingDirectory, '');
-      const filePathRelativeToRoot = filePathRelativeToRootWithFileName.substring(
-        0,
-        filePathRelativeToRootWithFileName.lastIndexOf('/'),
-      );
-      const pathTheFileNeedsToCopyInto = join(templateOutputPath, filePathRelativeToRoot);
-      const finalFilePath = join(templateOutputPath, filePathRelativeToRootWithFileName);
+    const devProcessPromise = this.startDevServer();
 
-      await this.copyFile(path, finalFilePath);
-    });
+    const watchFilesPromise = this.watchFiles();
+    //   if (!this.shouldIncludeFile(path, templatePath)) {
+    //     return;
+    //   }
+
+    //   const filePathRelativeToRootWithFileName = path.replace(workingDirectory, '');
+    //   const filePathRelativeToRoot = filePathRelativeToRootWithFileName.substring(
+    //     0,
+    //     filePathRelativeToRootWithFileName.lastIndexOf('/'),
+    //   );
+    //   const pathTheFileNeedsToCopyInto = join(templateOutputPath, filePathRelativeToRoot);
+    //   const finalFilePath = join(templateOutputPath, filePathRelativeToRootWithFileName);
+
+    //   await this.copyFile(path, finalFilePath);
+    // });
+
+    await Promise.all([devProcessPromise, watchFilesPromise]);
   }
 
-  protected async startDevServer(outputPath) {
+  protected async startDevServer() {
     return spawnAndWait('npm', ['run', 'dev'], {
-      cwd: outputPath,
+      cwd: this.templatePath,
     });
   }
 
@@ -69,8 +80,49 @@ export class WatchCommand extends ConfigAwareCommand {
     }
   }
 
-  protected shouldIncludeFile(filePath: string, outputPath: string) {
-    return filePath.endsWith('.md') && !filePath.includes(outputPath);
+  protected shouldIncludeFile(filePath: string) {
+    return filePath.endsWith('.md') && !filePath.includes(this.templatePath);
+  }
+
+  protected watchFiles() {
+    const eventToCallback = {
+      add: this.handleFileAdded.bind(this),
+      change: this.handleFileChanged.bind(this),
+      unlink: this.handleFileDeleted.bind(this),
+    };
+    const watchInstance = watch(this.workingDirectory, { persistent: true, ignoreInitial: true });
+
+    watchInstance.on('all', async (event, path) => {
+      if (this.shouldIncludeFile(path)) {
+        await eventToCallback[event](path);
+      }
+    });
+
+    return watchInstance;
+  }
+
+  protected async handleFileAdded(path: string) {
+    const fileRelativePath = await this.getChangedFileRelativePathToTemplateOutputPath(path);
+
+    return await this.copyFile(path, fileRelativePath);
+  }
+
+  protected async handleFileDeleted(path: string) {
+    const fileRelativePath = await this.getChangedFileRelativePathToTemplateOutputPath(path);
+
+    return await this.deleteFile(fileRelativePath);
+  }
+
+  protected async handleFileChanged(path: string) {
+    const fileRelativePath = await this.getChangedFileRelativePathToTemplateOutputPath(path);
+
+    return await this.copyFile(path, fileRelativePath);
+  }
+
+  protected async getChangedFileRelativePathToTemplateOutputPath(path: string) {
+    const filePathRelativeToRootWithFileName = path.replace(this.workingDirectory, '');
+
+    return join(this.templateOutputPath, filePathRelativeToRootWithFileName);
   }
 
   protected copyAllFilesToOutputDirectory(
@@ -119,18 +171,7 @@ export class WatchCommand extends ConfigAwareCommand {
     return await copyFile(fromPath, toPath);
   }
 
-  protected watchFiles(resolvePath: string, cb: (event: string, path: string) => Promise<void>) {
-    watch(resolvePath, { persistent: true, ignoreInitial: true }).on('all', (event, path) => {
-      cb(event, path);
-    });
-  }
-
-  private displayBanner() {
-    const currentDate = new Date();
-    console.info(
-      chalk.grey(
-        `[${currentDate.toDateString()} ${currentDate.toLocaleTimeString()}] Starting Metrists in watch mode...`,
-      ),
-    );
+  protected async deleteFile(path: string) {
+    return await unlink(path);
   }
 }
