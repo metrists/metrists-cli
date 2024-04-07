@@ -76,7 +76,7 @@ export async function createDirectoryIfNotExists(directoryPath: string) {
   }
 }
 
-export async function pathExists(path: string) {
+export function pathExists(path: string) {
   return existsSync(path);
 }
 
