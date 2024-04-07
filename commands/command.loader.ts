@@ -23,7 +23,7 @@ export class CommandLoader {
 
   protected static loadCommandAndAction(command: AbstractCommand, program: CommanderStatic) {
     const commanderCommand = command.load(program);
-    commanderCommand.action(async (options) => {
+    commanderCommand.action(async () => {
       return await command.handle(commanderCommand);
     });
     return commanderCommand;

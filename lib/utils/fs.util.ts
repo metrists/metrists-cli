@@ -16,7 +16,7 @@ export async function readFile<TData = any>(...paths: string[]) {
 export async function readFileIfExists<TData = any>(...paths: string[]) {
   const finalPath = combinePaths(paths);
   if (existsSync(finalPath)) {
-    return readFile(finalPath);
+    return readFile(finalPath) as Promise<TData>;
   }
 
   return null;
@@ -26,7 +26,7 @@ function combinePaths(paths: string[]) {
   return paths.reduce((finalPath, currentPortion) => join(finalPath, currentPortion), '');
 }
 
-export async function* getContentsRecursively(dir) {
+export async function* getContentsRecursively(dir: string) {
   const dirents = await readdir(dir, { withFileTypes: true });
   for (const dirent of dirents) {
     const res = resolve(dir, dirent.name);

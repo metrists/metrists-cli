@@ -14,7 +14,8 @@
   "scripts": {
     "build": "tsc",
     "dev": "ts-node ./bin/metrists.ts",
-    "dev:build": "nodemon --exec npm run build"
+    "dev:build": "nodemon --exec npm run build",
+    "lint": "eslint . --ext .ts"
   },
   "repository": {
     "type": "git",

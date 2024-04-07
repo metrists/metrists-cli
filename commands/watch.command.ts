@@ -24,6 +24,7 @@ export class WatchCommand extends ConfigAwareCommand {
       .description('Watch for the changes and sync them into the dev server');
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   public async handle(command: Command) {
     await this.loadConfig();
 
