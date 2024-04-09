@@ -1,7 +1,5 @@
 export const extractJson = (str: string): Record<string, any> | false => {
-  let firstOpen: number | undefined,
-    firstClose: number | undefined,
-    candidate: string | undefined;
+  let firstOpen: number | undefined, firstClose: number | undefined, candidate: string | undefined;
   firstOpen = str.indexOf('{', firstOpen + 1);
   do {
     firstClose = str.lastIndexOf('}');

@@ -1,7 +1,7 @@
 {
   "name": "@metrists/cli",
   "version": "0.0.6",
-  "description": "metrists - Simple Localization as a Service",
+  "description": "metrists - publish markdown files as a book",
   "publishConfig": {
     "access": "public"
   },
@@ -14,7 +14,8 @@
   "scripts": {
     "build": "tsc",
     "dev": "ts-node ./bin/metrists.ts",
-    "dev:build": "nodemon --exec yarn build"
+    "dev:build": "nodemon --exec npm run build",
+    "lint": "eslint . --ext .ts"
   },
   "repository": {
     "type": "git",
@@ -27,21 +28,17 @@
   "homepage": "https://github.com/metrists/metrists-cli#readme",
   "dependencies": {
     "@babel/core": "^7.20.2",
-    "axios": "^1.2.1",
-    "cacache": "^17.1.0",
-    "chalk": "3.0.0",
-    "chokidar": "^3.5.3",
+    "chalk": "^3.0.0",
+    "chokidar": "^3.6.0",
     "commander": "4.1.1",
-    "deep-diff": "^1.0.2",
     "dotenv": "^16.0.3",
     "node-emoji": "1.11.0",
+    "node-html-parser": "^6.1.11",
     "os-name": "4.0.1",
     "rimraf": "3.0.2",
     "tsconfig-paths": "4.1.0",
-    "tsconfig-paths-webpack-plugin": "4.0.0",
     "typescript": "4.8.3",
-    "webpack": "5.74.0",
-    "webpack-node-externals": "3.0.0"
+    "zod": "^3.22.4"
   },
   "devDependencies": {
     "@types/node": "^18.11.18",
