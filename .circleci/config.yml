@@ -1,10 +1,8 @@
-# This config is equivalent to both the '.circleci/extended/orb-free.yml' and the base '.circleci/config.yml'
 version: 2.1
 
-# Orbs are reusable packages of CircleCI configuration that you may share across projects, enabling you to create encapsulated, parameterized commands, jobs, and executors that can be used across multiple projects.
-# See: https://circleci.com/docs/2.0/orb-intro/
 orbs:
   node: circleci/node@5.1.0
+
 workflows:
   build:
     jobs:
@@ -17,12 +15,16 @@ workflows:
               only: /^v.*/
             branches:
               ignore: /.*/
+
 jobs:
   build-only:
     docker:
       - image: 'cimg/base:stable'
     steps:
       - checkout
+      - node/install:
+          node-version: '16.13'
+      - run: npm install
       - run: node --version
       - run:
           command: npm run build
@@ -30,18 +32,22 @@ jobs:
       - persist_to_workspace:
           root: ~/project
           paths: .
+
   deploy:
     docker:
       - image: 'cimg/base:stable'
     steps:
       - checkout
+      - node/install:
+          node-version: '16.13'
+      - run: npm install
       - run: node --version
       - run:
           command: npm run build
           name: Build it
       - run:
           name: Authenticate with registry
-          command: echo "//registry.npmjs.org/:_authToken=$npm_TOKEN" > ~/repo/.npmrc
+          command: echo "//registry.npmjs.org/:_authToken=$npm_TOKEN" > ~/.npmrc
       - run:
           name: Publish package
           command: npm publish
