@@ -15,8 +15,8 @@ export const RC_FILE_NAME = '.metristsrc';
 export const DEFAULT_RC_FILE: IRcFileComplete = {
   outDir: '.metrists',
   template: {
-    repository: 'https://github.com/one-aalam/remix-ink',
-    filesPath: '/content/posts/',
+    repository: 'https://github.com/metrists/metrists-default-theme',
+    filesPath: '/content/',
   },
 };
 
@@ -30,7 +30,10 @@ export type GetRcFieldValue<TData> = GetFieldValue<IRcFile, TData>;
 export async function getConfigGetter(basePath: string) {
   const data = await readRcFile(basePath);
 
-  function getConfig<TResult>(callback: GetRcFieldValue<TResult>, defaultValue?: TResult): TResult {
+  function getConfig<TResult>(
+    callback: GetRcFieldValue<TResult>,
+    defaultValue?: TResult,
+  ): TResult {
     return callback(data) ?? defaultValue ?? callback(DEFAULT_RC_FILE);
   }
   return getConfig;

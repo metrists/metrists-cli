@@ -9,6 +9,7 @@ import {
   deleteFile,
   copyAllFilesFromOneDirectoryToAnother,
   pathExists,
+  createDirectory,
 } from '../lib/utils/fs.util';
 
 export class WatchCommand extends ConfigAwareCommand {
@@ -41,18 +42,29 @@ export class WatchCommand extends ConfigAwareCommand {
         (filePath) => this.shouldIncludeFile(filePath),
       );
     } else {
-      const templateRepository = this.getConfig((rc) => rc?.template?.repository);
-      await this.spawnAndWaitAndStopIfError('git', ['clone', templateRepository, outDir]);
+      const templateRepository = this.getConfig(
+        (rc) => rc?.template?.repository,
+      );
+      await this.spawnAndWaitAndStopIfError('git', [
+        'clone',
+        templateRepository,
+        outDir,
+      ]);
       console.log(chalk.green('Successfully Cloned Template'));
-      await this.spawnAndWaitAndStopIfError('npm', ['install'], { cwd: outDir });
+      await this.spawnAndWaitAndStopIfError('npm', ['install'], {
+        cwd: outDir,
+      });
       console.log(chalk.green('Successfully Installed Dependencies'));
+      if(!pathExists(this.templateOutputPath)) {
+        await createDirectory(this.templateOutputPath); 
+      }
     }
 
-    const devProcessPromise = this.startDevServer();
-
-    const watchFilesPromise = this.watchFiles();
-
-    await Promise.all([devProcessPromise, watchFilesPromise]);
+    await Promise.all([
+      this.startDevServer(),
+      this.watchFiles(),
+      this.startContentLayer(),
+    ]);
   }
 
   protected async startDevServer() {
@@ -61,7 +73,15 @@ export class WatchCommand extends ConfigAwareCommand {
     });
   }
 
-  protected async spawnAndWaitAndStopIfError(...args: Parameters<typeof spawnAndWait>) {
+  protected async startContentLayer() {
+    return spawnAndWait('npm', ['run', 'dev:content'], {
+      cwd: this.templatePath,
+    });
+  }
+
+  protected async spawnAndWaitAndStopIfError(
+    ...args: Parameters<typeof spawnAndWait>
+  ) {
     const childProcess = await spawnAndWait(...args);
     if (childProcess.exitCode) {
       process.exit(childProcess.exitCode);
@@ -78,7 +98,10 @@ export class WatchCommand extends ConfigAwareCommand {
       change: this.handleFileChanged.bind(this),
       unlink: this.handleFileDeleted.bind(this),
     };
-    const watchInstance = watch(this.workingDirectory, { persistent: true, ignoreInitial: true });
+    const watchInstance = watch(this.workingDirectory, {
+      persistent: true,
+      ignoreInitial: false,
+    });
 
     watchInstance.on('all', async (event, path) => {
       if (this.shouldIncludeFile(path)) {
@@ -90,25 +113,31 @@ export class WatchCommand extends ConfigAwareCommand {
   }
 
   protected async handleFileAdded(path: string) {
-    const fileRelativePath = await this.getChangedFileRelativePathToTemplateOutputPath(path);
+    const fileRelativePath =
+      await this.getChangedFileRelativePathToTemplateOutputPath(path);
 
     return await copyFile(path, fileRelativePath);
   }
 
   protected async handleFileDeleted(path: string) {
-    const fileRelativePath = await this.getChangedFileRelativePathToTemplateOutputPath(path);
+    const fileRelativePath =
+      await this.getChangedFileRelativePathToTemplateOutputPath(path);
 
     return await deleteFile(fileRelativePath);
   }
 
   protected async handleFileChanged(path: string) {
-    const fileRelativePath = await this.getChangedFileRelativePathToTemplateOutputPath(path);
+    const fileRelativePath =
+      await this.getChangedFileRelativePathToTemplateOutputPath(path);
 
     return await copyFile(path, fileRelativePath);
   }
 
   protected async getChangedFileRelativePathToTemplateOutputPath(path: string) {
-    const filePathRelativeToRootWithFileName = path.replace(this.workingDirectory, '');
+    const filePathRelativeToRootWithFileName = path.replace(
+      this.workingDirectory,
+      '',
+    );
 
     return join(this.templateOutputPath, filePathRelativeToRootWithFileName);
   }
