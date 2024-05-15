@@ -1,6 +1,6 @@
 {
   "name": "@metrists/cli",
-  "version": "0.0.74",
+  "version": "0.0.75",
   "description": "metrists - publish markdown files as a book",
   "publishConfig": {
     "access": "public"
@@ -8,7 +8,9 @@
   "engines": {
     "node": ">= 12.9.0"
   },
-  "bin": "./dist/bin/metrists.js",
+  "bin": {
+    "metrists": "./dist/bin/metrists.js"
+  },
   "scripts": {
     "build": "tsc",
     "dev": "ts-node ./bin/metrists.ts",
