@@ -3,10 +3,12 @@ import { CommanderStatic } from 'commander';
 import { ERROR_PREFIX } from '../lib/ui';
 import { AbstractCommand } from './abstract.command';
 import { WatchCommand } from './watch.command';
+import { InitCommand } from './init.command';
 
 export class CommandLoader {
   public static load(program: CommanderStatic): void {
     this.loadCommandAndAction(new WatchCommand(), program);
+    this.loadCommandAndAction(new InitCommand(), program);
     this.handleInvalidCommand(program);
   }
 
@@ -16,12 +18,17 @@ export class CommandLoader {
         `\n${ERROR_PREFIX} Invalid command: ${chalk.red('%s')}`,
         program.args.join(' '),
       );
-      console.log(`See ${chalk.red('--help')} for a list of available commands.\n`);
+      console.log(
+        `See ${chalk.red('--help')} for a list of available commands.\n`,
+      );
       process.exit(1);
     });
   }
 
-  protected static loadCommandAndAction(command: AbstractCommand, program: CommanderStatic) {
+  protected static loadCommandAndAction(
+    command: AbstractCommand,
+    program: CommanderStatic,
+  ) {
     const commanderCommand = command.load(program);
     commanderCommand.action(async () => {
       return await command.handle(commanderCommand);
