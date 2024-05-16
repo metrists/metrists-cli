@@ -1,4 +1,4 @@
-import { readFileIfExists } from './fs.util';
+import { readFileInJsonIfExists } from './fs.util';
 
 export interface IRcFileComplete {
   outDir: string;
@@ -21,7 +21,7 @@ export const DEFAULT_RC_FILE: IRcFileComplete = {
 };
 
 export async function readRcFile(basePath: string) {
-  return readFileIfExists<IRcFile>(basePath, RC_FILE_NAME);
+  return readFileInJsonIfExists<IRcFile>(basePath, RC_FILE_NAME);
 }
 export type GetFieldValue<TData, TResult> = (data: TData) => TResult;
 

@@ -8,6 +8,7 @@ import {
   pathExists,
   createDirectory,
 } from '../lib/utils/fs.util';
+import { addToGitIgnore } from '../lib/utils/gitignore.util';
 
 export class InitCommand extends ConfigAwareCommand {
   protected outDir: string;
@@ -16,9 +17,7 @@ export class InitCommand extends ConfigAwareCommand {
   protected templateOutputPath: string;
 
   public load(program: CommanderStatic) {
-    return program
-      .command('init')
-      .alias('i')
+    return program.command('init').alias('i');
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -31,21 +30,9 @@ export class InitCommand extends ConfigAwareCommand {
     const templateFilesPath = this.getConfig((rc) => rc?.template?.filesPath);
     this.templateOutputPath = join(this.templatePath, templateFilesPath);
 
-    if (pathExists(this.templatePath)) {
-      copyAllFilesFromOneDirectoryToAnother(
-        this.workingDirectory,
-        this.templateOutputPath,
-        (filePath) => this.shouldIncludeFile(filePath),
-      );
-    } else {
-      const templateRepository = this.getConfig(
-        (rc) => rc?.template?.repository,
-      );
-      await this.spawnAndWaitAndStopIfError('git', [
-        'clone',
-        templateRepository,
-        outDir,
-      ]);
+    if (!pathExists(this.templatePath)) {
+      const templateRepository = this.getConfig((rc) => rc?.template?.repository);
+      await this.spawnAndWaitAndStopIfError('git', ['clone', templateRepository, outDir]);
       console.log(chalk.green('Successfully Cloned Template'));
       await this.spawnAndWaitAndStopIfError('npm', ['install'], {
         cwd: outDir,
@@ -55,11 +42,11 @@ export class InitCommand extends ConfigAwareCommand {
         await createDirectory(this.templateOutputPath);
       }
     }
+
+    await this.createGitIgnoreFile();
   }
 
-  protected async spawnAndWaitAndStopIfError(
-    ...args: Parameters<typeof spawnAndWait>
-  ) {
+  protected async spawnAndWaitAndStopIfError(...args: Parameters<typeof spawnAndWait>) {
     const childProcess = await spawnAndWait(...args);
     if (childProcess.exitCode) {
       process.exit(childProcess.exitCode);
@@ -68,5 +55,10 @@ export class InitCommand extends ConfigAwareCommand {
 
   protected shouldIncludeFile(filePath: string) {
     return filePath.endsWith('.md') && !filePath.includes(this.templatePath);
+  }
+
+  protected async createGitIgnoreFile() {
+    const itemsToIgnore = [this.getConfig((rc) => rc?.outDir)];
+    await addToGitIgnore(this.workingDirectory, itemsToIgnore);
   }
 }

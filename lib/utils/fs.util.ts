@@ -5,12 +5,32 @@ import {
   copyFile as copyFileFs,
   mkdir,
   unlink,
+  appendFile,
 } from 'fs/promises';
 import { existsSync } from 'fs';
+import { EOL } from 'os';
 
-export async function readFile<TData = any>(...paths: string[]) {
+export async function readFile(...paths: string[]) {
   const finalPath = combinePaths(paths);
-  return JSON.parse(await readFileFs(finalPath, { encoding: 'utf8' })) as TData;
+  return await readFileFs(finalPath, { encoding: 'utf8' });
+}
+
+export async function readFileInJson<TData = any>(...params: Parameters<typeof readFile>) {
+  const fileContent = await readFile(...params);
+  return JSON.parse(fileContent) as TData;
+}
+
+export async function readFileInJsonIfExists<TData = any>(...params: Parameters<typeof readFile>) {
+  const finalPath = combinePaths(params); 
+  if (existsSync(finalPath)){
+    return await readFileInJson<TData>(...params);
+  }
+  return null;
+}
+
+export async function readFileInLines(...params: Parameters<typeof readFile>) {
+  const fileContent = await readFile(...params);
+  return fileContent.split(EOL);
 }
 
 export async function readFileIfExists<TData = any>(...paths: string[]) {
@@ -22,7 +42,15 @@ export async function readFileIfExists<TData = any>(...paths: string[]) {
   return null;
 }
 
-function combinePaths(paths: string[]) {
+export async function appendToFile(filePath: string, data: string | string[] | Buffer) {
+  if (Array.isArray(data)) {
+    return await appendFile(filePath, data.join(EOL));
+  } else {
+    return await appendFile(filePath, data);
+  }
+}
+
+export function combinePaths(paths: string[]) {
   return paths.reduce((finalPath, currentPortion) => join(finalPath, currentPortion), '');
 }
 
@@ -73,6 +101,16 @@ export async function createDirectory(directoryPath: string) {
 export async function createDirectoryIfNotExists(directoryPath: string) {
   if (!pathExists(directoryPath)) {
     return await createDirectory(directoryPath);
+  }
+}
+
+export async function createFile(filePath: string, fileContent?: string | Buffer) {
+  return await appendFile(filePath, fileContent ?? '');
+}
+
+export async function createFileIfNotExists(filePath: string) {
+  if (!pathExists(filePath)) {
+    return await createFile(filePath);
   }
 }
 
