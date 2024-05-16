@@ -10,13 +10,26 @@ import {
 import { existsSync } from 'fs';
 import { EOL } from 'os';
 
-export async function readFile<TData = any>(...paths: string[]) {
+export async function readFile(...paths: string[]) {
   const finalPath = combinePaths(paths);
-  return JSON.parse(await readFileFs(finalPath, { encoding: 'utf8' })) as TData;
+  return await readFileFs(finalPath, { encoding: 'utf8' });
+}
+
+export async function readFileInJson<TData = any>(...params: Parameters<typeof readFile>) {
+  const fileContent = await readFile(...params);
+  return JSON.parse(fileContent) as TData;
+}
+
+export async function readFileInJsonIfExists<TData = any>(...params: Parameters<typeof readFile>) {
+  const finalPath = combinePaths(params); 
+  if (existsSync(finalPath)){
+    return await readFileInJson<TData>(...params);
+  }
+  return null;
 }
 
 export async function readFileInLines(...params: Parameters<typeof readFile>) {
-  const fileContent = await readFile<string>(...params);
+  const fileContent = await readFile(...params);
   return fileContent.split(EOL);
 }
 
