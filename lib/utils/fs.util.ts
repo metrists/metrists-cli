@@ -85,11 +85,12 @@ export function copyAllFilesFromOneDirectoryToAnother(
 
 export async function performOnAllFilesInDirectory(
   directoryPath: string,
-  cb: (filePath: string) => Promise<void>,
+  cb: (filePath: string, orderIndex?: number) => Promise<void>,
 ) {
   const resultPromises = [];
+  let orderIndex = 0;
   for await (const file of getContentsRecursively(directoryPath)) {
-    resultPromises.push(cb(file));
+    resultPromises.push(cb(file, orderIndex++));
   }
   return Promise.all(resultPromises);
 }
