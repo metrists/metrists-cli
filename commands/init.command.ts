@@ -14,7 +14,8 @@ export class InitCommand extends ConfigAwareCommand {
   protected outDir: string;
   protected workingDirectory: string;
   protected templatePath: string;
-  protected templateOutputPath: string;
+  protected templateContentPath: string;
+  protected templateAssetsPath: string;
 
   public load(program: CommanderStatic) {
     return program.command('init').alias('i');
@@ -24,31 +25,38 @@ export class InitCommand extends ConfigAwareCommand {
   public async handle(command: Command) {
     await this.loadRcConfig();
 
+    this.workingDirectory = process.cwd();
     const outDir = this.getRc((rc) => rc?.outDir);
     this.workingDirectory = process.cwd();
     this.templatePath = join(this.workingDirectory, outDir);
-    const templateFilesPath = this.getRc((rc) => rc?.template?.filesPath);
-    this.templateOutputPath = join(this.templatePath, templateFilesPath);
 
-    if (!pathExists(this.templatePath)) {
-      await this.cloneRepository();
-      console.log(chalk.green('Successfully Cloned Template'));
-      await this.spawnAndWaitAndStopIfError('npm', ['install'], {
-        cwd: outDir,
-      });
-      console.log(chalk.green('Successfully Installed Dependencies'));
-      if (!pathExists(this.templateOutputPath)) {
-        await createDirectory(this.templateOutputPath);
-      }
-    } else {
-      copyAllFilesFromOneDirectoryToAnother(
-        this.workingDirectory,
-        this.templateOutputPath,
-        (filePath) => this.shouldIncludeFile(filePath),
-      );
+    const isFirstRun = this.isFirstRun(this.templatePath);
+
+    if (isFirstRun) {
+      await this.cloneAndInstallTemplate(outDir);
     }
 
     await this.loadTemplateConfig();
+
+    const templateContentRelativePath = this.getTemplateConfig((rc) => rc?.contentPath);
+    this.templateContentPath = join(this.templatePath, templateContentRelativePath);
+    const templateAssetsRelativePath = this.getTemplateConfig((rc) => rc?.assetsPath);
+    this.templateAssetsPath = join(this.templatePath, templateAssetsRelativePath);
+
+    Promise.all([
+      copyAllFilesFromOneDirectoryToAnother(
+        this.workingDirectory,
+        this.templateContentPath,
+        (filePath) =>
+          this.shouldIncludeFile(filePath) && this.getChangedFileType(filePath) === 'content',
+      ),
+      copyAllFilesFromOneDirectoryToAnother(
+        this.workingDirectory,
+        this.templateAssetsPath,
+        (filePath) =>
+          this.shouldIncludeFile(filePath) && this.getChangedFileType(filePath) === 'assets',
+      ),
+    ]);
 
     await this.createGitIgnoreFile();
   }
@@ -64,9 +72,26 @@ export class InitCommand extends ConfigAwareCommand {
     return filePath.endsWith('.md') && !filePath.includes(this.templatePath);
   }
 
+  protected getChangedFileType(path: string): 'content' | 'assets' {
+    if (path.endsWith('.md')) {
+      return 'content';
+    } else {
+      return 'assets';
+    }
+  }
+
   protected async createGitIgnoreFile() {
     const itemsToIgnore = [this.getRc((rc) => rc?.outDir)];
     await addToGitIgnore(this.workingDirectory, itemsToIgnore);
+  }
+
+  protected async cloneAndInstallTemplate(outDir: string) {
+    await this.cloneRepository();
+    console.log(chalk.green('Successfully Cloned Template'));
+    await this.spawnAndWaitAndStopIfError('npm', ['install'], {
+      cwd: outDir,
+    });
+    console.log(chalk.green('Successfully Installed Dependencies'));
   }
 
   protected async cloneRepository() {
@@ -85,5 +110,10 @@ export class InitCommand extends ConfigAwareCommand {
       outDir,
       ...extraOptions,
     ]);
+  }
+
+  protected isFirstRun(templatePath: string) {
+    //TOOD: Be more specific about this condition
+    return !pathExists(templatePath);
   }
 }

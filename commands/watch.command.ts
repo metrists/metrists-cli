@@ -11,7 +11,6 @@ export class WatchCommand extends InitCommand {
   protected outDir: string;
   protected workingDirectory: string;
   protected templatePath: string;
-  protected templateOutputPath: string;
 
   public load(program: CommanderStatic) {
     return program
@@ -23,11 +22,6 @@ export class WatchCommand extends InitCommand {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   public async handle(command: Command) {
     await super.handle(command);
-
-    this.workingDirectory = process.cwd();
-
-    const templateFilesPath = this.getRc((rc) => rc?.template?.filesPath);
-    this.templateOutputPath = join(this.templatePath, templateFilesPath);
 
     await Promise.all([this.startDevServer(), this.watchFiles(), this.startContentLayer()]);
   }
@@ -88,26 +82,42 @@ export class WatchCommand extends InitCommand {
   }
 
   protected async handleFileAdded(path: string) {
-    const fileRelativePath = await this.getChangedFileRelativePathToTemplateOutputPath(path);
+    const fileRelativePath = await this.getChangedFileRelativePathToTemplateOutputPath(
+      path,
+      this.getChangedFileType(path),
+    );
 
     return await copyFile(path, fileRelativePath);
   }
 
   protected async handleFileDeleted(path: string) {
-    const fileRelativePath = await this.getChangedFileRelativePathToTemplateOutputPath(path);
+    const fileRelativePath = await this.getChangedFileRelativePathToTemplateOutputPath(
+      path,
+      this.getChangedFileType(path),
+    );
 
     return await deleteFile(fileRelativePath);
   }
 
   protected async handleFileChanged(path: string) {
-    const fileRelativePath = await this.getChangedFileRelativePathToTemplateOutputPath(path);
+    const fileRelativePath = await this.getChangedFileRelativePathToTemplateOutputPath(
+      path,
+      this.getChangedFileType(path),
+    );
 
     return await copyFile(path, fileRelativePath);
   }
 
-  protected async getChangedFileRelativePathToTemplateOutputPath(path: string) {
+  protected async getChangedFileRelativePathToTemplateOutputPath(
+    path: string,
+    fileType: 'content' | 'assets',
+  ) {
     const filePathRelativeToRootWithFileName = path.replace(this.workingDirectory, '');
 
-    return join(this.templateOutputPath, filePathRelativeToRootWithFileName);
+    if (fileType === 'content') {
+      return join(this.templateContentPath, filePathRelativeToRootWithFileName);
+    } else {
+      return join(this.templateAssetsPath, filePathRelativeToRootWithFileName);
+    }
   }
 }

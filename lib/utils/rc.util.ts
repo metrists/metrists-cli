@@ -4,7 +4,6 @@ export interface IRcFileComplete {
   outDir: string;
   template: {
     repository: string;
-    filesPath: string;
     branch?: string;
   };
 }
@@ -17,7 +16,6 @@ export const DEFAULT_RC_FILE: IRcFileComplete = {
   outDir: '.metrists',
   template: {
     repository: 'https://github.com/metrists/metrists-default-theme',
-    filesPath: '/content/',
   },
 };
 
