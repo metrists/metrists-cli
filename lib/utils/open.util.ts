@@ -15,7 +15,7 @@ const commands = (): [string, string[]?] => {
   }
 };
 
-export async function open(url: string) {
+export function open(url: string) {
   const [command, args = []] = commands();
   execFile(command, [...args, encodeURI(url)]);
 }

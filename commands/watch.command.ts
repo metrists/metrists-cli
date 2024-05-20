@@ -29,18 +29,13 @@ export class WatchCommand extends InitCommand {
     const templateFilesPath = this.getConfig((rc) => rc?.template?.filesPath);
     this.templateOutputPath = join(this.templatePath, templateFilesPath);
 
-    const [devResults] = await Promise.all([
-      this.startDevServer(),
-      this.watchFiles(),
-      this.startContentLayer(),
-    ]);
-    console.log('dev results', devResults);
+    await Promise.all([this.startDevServer(), this.watchFiles(), this.startContentLayer()]);
   }
 
   protected async startDevServer() {
-    const serverStarted = false;
     //TODO: Be smarter about this
-    const serverStartRegexes = ['/(localhost):\d+/'];
+    let serverStarted = false;
+    const serverStartRegexes = [/https?:\/\/localhost:\d+/g];
     return spawnAndWait(
       'npm',
       ['run', 'dev'],
@@ -50,14 +45,17 @@ export class WatchCommand extends InitCommand {
       {
         stdOutListener: (data) => {
           if (!serverStarted) {
-            const matches = serverStartRegexes.map((regex) =>
-              data.toString().match(new RegExp(regex , 'gi')),
-            );
+            const matches = serverStartRegexes.map((regex) => data.toString().match(regex));
             if (matches.length && matches[0]) {
-              open(matches[0].toString());
+              const localUrl = matches[0].toString();
+              try {
+                open(localUrl);
+                serverStarted = true;
+              } catch (e) {
+                console.log(chalk.green(`Server started at ${localUrl}`));
+              }
             }
           }
-          console.log(data.toString());
         },
       },
     );
@@ -90,31 +88,25 @@ export class WatchCommand extends InitCommand {
   }
 
   protected async handleFileAdded(path: string) {
-    const fileRelativePath =
-      await this.getChangedFileRelativePathToTemplateOutputPath(path);
+    const fileRelativePath = await this.getChangedFileRelativePathToTemplateOutputPath(path);
 
     return await copyFile(path, fileRelativePath);
   }
 
   protected async handleFileDeleted(path: string) {
-    const fileRelativePath =
-      await this.getChangedFileRelativePathToTemplateOutputPath(path);
+    const fileRelativePath = await this.getChangedFileRelativePathToTemplateOutputPath(path);
 
     return await deleteFile(fileRelativePath);
   }
 
   protected async handleFileChanged(path: string) {
-    const fileRelativePath =
-      await this.getChangedFileRelativePathToTemplateOutputPath(path);
+    const fileRelativePath = await this.getChangedFileRelativePathToTemplateOutputPath(path);
 
     return await copyFile(path, fileRelativePath);
   }
 
   protected async getChangedFileRelativePathToTemplateOutputPath(path: string) {
-    const filePathRelativeToRootWithFileName = path.replace(
-      this.workingDirectory,
-      '',
-    );
+    const filePathRelativeToRootWithFileName = path.replace(this.workingDirectory, '');
 
     return join(this.templateOutputPath, filePathRelativeToRootWithFileName);
   }
