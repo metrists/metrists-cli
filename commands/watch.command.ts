@@ -4,13 +4,8 @@ import * as chalk from 'chalk';
 import { watch } from 'chokidar';
 import { InitCommand } from './init.command';
 import { spawnAndWait } from '../lib/utils/process.util';
-import {
-  copyFile,
-  deleteFile,
-  copyAllFilesFromOneDirectoryToAnother,
-  pathExists,
-  createDirectory,
-} from '../lib/utils/fs.util';
+import { copyFile, deleteFile } from '../lib/utils/fs.util';
+import { open } from '../lib/utils/open.util';
 
 export class WatchCommand extends InitCommand {
   protected outDir: string;
@@ -34,17 +29,36 @@ export class WatchCommand extends InitCommand {
     const templateFilesPath = this.getConfig((rc) => rc?.template?.filesPath);
     this.templateOutputPath = join(this.templatePath, templateFilesPath);
 
-    await Promise.all([
-      this.startDevServer(),
-      this.watchFiles(),
-      this.startContentLayer(),
-    ]);
+    await Promise.all([this.startDevServer(), this.watchFiles(), this.startContentLayer()]);
   }
 
   protected async startDevServer() {
-    return spawnAndWait('npm', ['run', 'dev'], {
-      cwd: this.templatePath,
-    });
+    //TODO: Be smarter about this
+    let serverStarted = false;
+    const serverStartRegexes = [/https?:\/\/localhost:\d+/g];
+    return spawnAndWait(
+      'npm',
+      ['run', 'dev'],
+      {
+        cwd: this.templatePath,
+      },
+      {
+        stdOutListener: (data) => {
+          if (!serverStarted) {
+            const matches = serverStartRegexes.map((regex) => data.toString().match(regex));
+            if (matches.length && matches[0]) {
+              const localUrl = matches[0].toString();
+              try {
+                open(localUrl);
+                serverStarted = true;
+              } catch (e) {
+                console.log(chalk.green(`Server started at ${localUrl}`));
+              }
+            }
+          }
+        },
+      },
+    );
   }
 
   protected async startContentLayer() {
@@ -74,31 +88,25 @@ export class WatchCommand extends InitCommand {
   }
 
   protected async handleFileAdded(path: string) {
-    const fileRelativePath =
-      await this.getChangedFileRelativePathToTemplateOutputPath(path);
+    const fileRelativePath = await this.getChangedFileRelativePathToTemplateOutputPath(path);
 
     return await copyFile(path, fileRelativePath);
   }
 
   protected async handleFileDeleted(path: string) {
-    const fileRelativePath =
-      await this.getChangedFileRelativePathToTemplateOutputPath(path);
+    const fileRelativePath = await this.getChangedFileRelativePathToTemplateOutputPath(path);
 
     return await deleteFile(fileRelativePath);
   }
 
   protected async handleFileChanged(path: string) {
-    const fileRelativePath =
-      await this.getChangedFileRelativePathToTemplateOutputPath(path);
+    const fileRelativePath = await this.getChangedFileRelativePathToTemplateOutputPath(path);
 
     return await copyFile(path, fileRelativePath);
   }
 
   protected async getChangedFileRelativePathToTemplateOutputPath(path: string) {
-    const filePathRelativeToRootWithFileName = path.replace(
-      this.workingDirectory,
-      '',
-    );
+    const filePathRelativeToRootWithFileName = path.replace(this.workingDirectory, '');
 
     return join(this.templateOutputPath, filePathRelativeToRootWithFileName);
   }
