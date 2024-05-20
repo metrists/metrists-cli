@@ -31,8 +31,7 @@ export class InitCommand extends ConfigAwareCommand {
     this.templateOutputPath = join(this.templatePath, templateFilesPath);
 
     if (!pathExists(this.templatePath)) {
-      const templateRepository = this.getConfig((rc) => rc?.template?.repository);
-      await this.spawnAndWaitAndStopIfError('git', ['clone', templateRepository, outDir]);
+      await this.cloneRepository();
       console.log(chalk.green('Successfully Cloned Template'));
       await this.spawnAndWaitAndStopIfError('npm', ['install'], {
         cwd: outDir,
@@ -60,5 +59,23 @@ export class InitCommand extends ConfigAwareCommand {
   protected async createGitIgnoreFile() {
     const itemsToIgnore = [this.getConfig((rc) => rc?.outDir)];
     await addToGitIgnore(this.workingDirectory, itemsToIgnore);
+  }
+
+  protected async cloneRepository() {
+    const outDir = this.getConfig((rc) => rc?.outDir);
+    const templateRepository = this.getConfig((rc) => rc?.template?.repository);
+    const branchName = this.getConfig((rc) => rc?.template?.branch);
+
+    let extraOptions = [];
+    if (branchName) {
+      extraOptions = ['-b', branchName];
+    }
+
+    return await this.spawnAndWaitAndStopIfError('git', [
+      'clone',
+      templateRepository,
+      outDir,
+      ...extraOptions,
+    ]);
   }
 }
