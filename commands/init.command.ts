@@ -14,7 +14,10 @@ export class InitCommand extends ConfigAwareCommand {
   protected outDir: string;
   protected workingDirectory: string;
   protected templatePath: string;
-  protected templateOutputPath: string;
+  protected templateContentPath: string;
+  protected templateAssetsPath: string;
+  protected ignoredFiles = ['.gitignore', '.metristsrc'];
+  protected ignoredDirectories = ['.git'];
 
   public load(program: CommanderStatic) {
     return program.command('init').alias('i');
@@ -22,28 +25,33 @@ export class InitCommand extends ConfigAwareCommand {
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   public async handle(command: Command) {
-    await this.loadConfig();
+    await this.loadRcConfig();
 
-    const outDir = this.getConfig((rc) => rc?.outDir);
+    this.workingDirectory = process.cwd();
+    const outDir = this.getRc((rc) => rc?.outDir);
     this.workingDirectory = process.cwd();
     this.templatePath = join(this.workingDirectory, outDir);
-    const templateFilesPath = this.getConfig((rc) => rc?.template?.filesPath);
-    this.templateOutputPath = join(this.templatePath, templateFilesPath);
 
-    if (!pathExists(this.templatePath)) {
-      const templateRepository = this.getConfig((rc) => rc?.template?.repository);
-      await this.spawnAndWaitAndStopIfError('git', ['clone', templateRepository, outDir]);
-      console.log(chalk.green('Successfully Cloned Template'));
-      await this.spawnAndWaitAndStopIfError('npm', ['install'], {
-        cwd: outDir,
-      });
-      console.log(chalk.green('Successfully Installed Dependencies'));
-      if (!pathExists(this.templateOutputPath)) {
-        await createDirectory(this.templateOutputPath);
-      }
+    const isFirstRun = this.isFirstRun(this.templatePath);
+
+    if (isFirstRun) {
+      await this.cloneAndInstallTemplate();
     }
 
-    await this.createGitIgnoreFile();
+    await this.loadTemplateConfig();
+
+    const templateContentRelativePath = this.getTemplateConfig((rc) => rc?.contentPath);
+    this.templateContentPath = join(this.templatePath, templateContentRelativePath);
+    const templateAssetsRelativePath = this.getTemplateConfig((rc) => rc?.assetsPath);
+    this.templateAssetsPath = join(this.templatePath, templateAssetsRelativePath);
+
+    const createGitIGnoreAndCopyFilesPromise: Promise<any>[] = [this.createGitIgnoreFile()];
+
+    if (isFirstRun) {
+      createGitIGnoreAndCopyFilesPromise.concat(this.copyAssetsAndContentFilesToTemplate());
+    }
+
+    await Promise.all(createGitIGnoreAndCopyFilesPromise);
   }
 
   protected async spawnAndWaitAndStopIfError(...args: Parameters<typeof spawnAndWait>) {
@@ -54,11 +62,81 @@ export class InitCommand extends ConfigAwareCommand {
   }
 
   protected shouldIncludeFile(filePath: string) {
-    return filePath.endsWith('.md') && !filePath.includes(this.templatePath);
+    const isIgnoredDirectory = this.ignoredDirectories.some((dir) => filePath.includes(dir));
+    const isIgnoredFile = this.ignoredFiles.some((file) => filePath.endsWith(file));
+    return !isIgnoredDirectory && !isIgnoredFile && !filePath.includes(this.templatePath);
+  }
+
+  protected getChangedFileType(path: string): 'content' | 'assets' {
+    if (path.endsWith('.md')) {
+      return 'content';
+    } else {
+      return 'assets';
+    }
   }
 
   protected async createGitIgnoreFile() {
-    const itemsToIgnore = [this.getConfig((rc) => rc?.outDir)];
+    const itemsToIgnore = [this.getRc((rc) => rc?.outDir)];
     await addToGitIgnore(this.workingDirectory, itemsToIgnore);
+  }
+
+  protected async cloneAndInstallTemplate() {
+    await this.cloneRepository();
+    console.log(chalk.green('Successfully Cloned Template'));
+    await this.spawnAndWaitAndStopIfError('npm', ['install'], {
+      cwd: this.templatePath,
+    });
+    console.log(chalk.green('Successfully Installed Dependencies'));
+  }
+
+  protected async cloneRepository() {
+    const outDir = this.getRc((rc) => rc?.outDir);
+    const templateRepository = this.getRc((rc) => rc?.template?.repository);
+    const branchName = this.getRc((rc) => rc?.template?.branch);
+
+    let extraOptions = [];
+    if (branchName) {
+      extraOptions = ['-b', branchName];
+    }
+
+    return await this.spawnAndWaitAndStopIfError('git', [
+      'clone',
+      templateRepository,
+      outDir,
+      ...extraOptions,
+    ]);
+  }
+
+  protected isFirstRun(templatePath: string) {
+    //TOOD: Be more specific about this condition
+    return !pathExists(templatePath);
+  }
+
+  protected async copyAssetsAndContentFilesToTemplate() {
+    const createDirectoryPromises = [];
+    if (!pathExists(this.templateContentPath)) {
+      createDirectoryPromises.push(createDirectory(this.templateContentPath));
+    }
+
+    if (!pathExists(this.templateAssetsPath)) {
+      createDirectoryPromises.push(createDirectory(this.templateAssetsPath));
+    }
+
+    await Promise.all(createDirectoryPromises);
+
+    return await Promise.all([
+      copyAllFilesFromOneDirectoryToAnother(
+        this.workingDirectory,
+        this.templateContentPath,
+        (filePath) =>
+          this.shouldIncludeFile(filePath) && this.getChangedFileType(filePath) === 'content',
+      ),
+      copyAllFilesFromOneDirectoryToAnother(
+        this.workingDirectory,
+        this.templateAssetsPath,
+        (filePath) =>
+          this.shouldIncludeFile(filePath) && this.getChangedFileType(filePath) === 'assets',
+      ),
+    ]);
   }
 }

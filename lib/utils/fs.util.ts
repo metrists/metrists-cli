@@ -7,7 +7,7 @@ import {
   unlink,
   appendFile,
 } from 'fs/promises';
-import { existsSync } from 'fs';
+import { existsSync, rmSync } from 'fs';
 import { EOL } from 'os';
 
 export async function readFile(...paths: string[]) {
@@ -21,8 +21,8 @@ export async function readFileInJson<TData = any>(...params: Parameters<typeof r
 }
 
 export async function readFileInJsonIfExists<TData = any>(...params: Parameters<typeof readFile>) {
-  const finalPath = combinePaths(params); 
-  if (existsSync(finalPath)){
+  const finalPath = combinePaths(params);
+  if (existsSync(finalPath)) {
     return await readFileInJson<TData>(...params);
   }
   return null;
@@ -102,6 +102,10 @@ export async function createDirectoryIfNotExists(directoryPath: string) {
   if (!pathExists(directoryPath)) {
     return await createDirectory(directoryPath);
   }
+}
+
+export async function deleteDirectory(directoryPath: string) {
+  return await rmSync(directoryPath, { recursive: true, force: true });
 }
 
 export async function createFile(filePath: string, fileContent?: string | Buffer) {
