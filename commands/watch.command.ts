@@ -30,9 +30,10 @@ export class WatchCommand extends InitCommand {
     //TODO: Be smarter about this
     let serverStarted = false;
     const serverStartRegexes = [/https?:\/\/localhost:\d+/g];
+    const watchScript = this.getTemplateConfig((rc) => rc?.watchScript).split(' ');
     return spawnAndWait(
-      'npm',
-      ['run', 'dev'],
+      watchScript[0],
+      watchScript.slice(1),
       {
         cwd: this.templatePath,
       },
@@ -57,7 +58,8 @@ export class WatchCommand extends InitCommand {
   }
 
   protected async startContentLayer() {
-    return spawnAndWait('npm', ['run', 'dev:content'], {
+    const contentWatchScript = this.getTemplateConfig((rc) => rc?.watchContentScript).split(' ');
+    return spawnAndWait(contentWatchScript[0], contentWatchScript.slice(1), {
       cwd: this.templatePath,
     });
   }
@@ -80,7 +82,6 @@ export class WatchCommand extends InitCommand {
 
     watchInstance.on('all', async (event, path) => {
       if (this.shouldIncludeFile(path) && eventToCallback[event]) {
-        console.log(chalk.blue(`File ${path} has been ${event}`));
         try {
           await eventToCallback[event](path);
         } catch (e) {
