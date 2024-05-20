@@ -26,7 +26,7 @@ export class WatchCommand extends InitCommand {
 
     this.workingDirectory = process.cwd();
 
-    const templateFilesPath = this.getConfig((rc) => rc?.template?.filesPath);
+    const templateFilesPath = this.getRc((rc) => rc?.template?.filesPath);
     this.templateOutputPath = join(this.templatePath, templateFilesPath);
 
     await Promise.all([this.startDevServer(), this.watchFiles(), this.startContentLayer()]);

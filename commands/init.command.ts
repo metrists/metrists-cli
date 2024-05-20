@@ -22,12 +22,12 @@ export class InitCommand extends ConfigAwareCommand {
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   public async handle(command: Command) {
-    await this.loadConfig();
+    await this.loadRcConfig();
 
-    const outDir = this.getConfig((rc) => rc?.outDir);
+    const outDir = this.getRc((rc) => rc?.outDir);
     this.workingDirectory = process.cwd();
     this.templatePath = join(this.workingDirectory, outDir);
-    const templateFilesPath = this.getConfig((rc) => rc?.template?.filesPath);
+    const templateFilesPath = this.getRc((rc) => rc?.template?.filesPath);
     this.templateOutputPath = join(this.templatePath, templateFilesPath);
 
     if (!pathExists(this.templatePath)) {
@@ -40,7 +40,15 @@ export class InitCommand extends ConfigAwareCommand {
       if (!pathExists(this.templateOutputPath)) {
         await createDirectory(this.templateOutputPath);
       }
+    } else {
+      copyAllFilesFromOneDirectoryToAnother(
+        this.workingDirectory,
+        this.templateOutputPath,
+        (filePath) => this.shouldIncludeFile(filePath),
+      );
     }
+
+    await this.loadTemplateConfig();
 
     await this.createGitIgnoreFile();
   }
@@ -57,14 +65,14 @@ export class InitCommand extends ConfigAwareCommand {
   }
 
   protected async createGitIgnoreFile() {
-    const itemsToIgnore = [this.getConfig((rc) => rc?.outDir)];
+    const itemsToIgnore = [this.getRc((rc) => rc?.outDir)];
     await addToGitIgnore(this.workingDirectory, itemsToIgnore);
   }
 
   protected async cloneRepository() {
-    const outDir = this.getConfig((rc) => rc?.outDir);
-    const templateRepository = this.getConfig((rc) => rc?.template?.repository);
-    const branchName = this.getConfig((rc) => rc?.template?.branch);
+    const outDir = this.getRc((rc) => rc?.outDir);
+    const templateRepository = this.getRc((rc) => rc?.template?.repository);
+    const branchName = this.getRc((rc) => rc?.template?.branch);
 
     let extraOptions = [];
     if (branchName) {
