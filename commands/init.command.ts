@@ -16,6 +16,8 @@ export class InitCommand extends ConfigAwareCommand {
   protected templatePath: string;
   protected templateContentPath: string;
   protected templateAssetsPath: string;
+  protected ignoredFiles = ['.gitignore', '.metristsrc'];
+  protected ignoredDirectories = ['.git'];
 
   public load(program: CommanderStatic) {
     return program.command('init').alias('i');
@@ -33,7 +35,7 @@ export class InitCommand extends ConfigAwareCommand {
     const isFirstRun = this.isFirstRun(this.templatePath);
 
     if (isFirstRun) {
-      await this.cloneAndInstallTemplate(outDir);
+      await this.cloneAndInstallTemplate();
     }
 
     await this.loadTemplateConfig();
@@ -43,22 +45,13 @@ export class InitCommand extends ConfigAwareCommand {
     const templateAssetsRelativePath = this.getTemplateConfig((rc) => rc?.assetsPath);
     this.templateAssetsPath = join(this.templatePath, templateAssetsRelativePath);
 
-    Promise.all([
-      copyAllFilesFromOneDirectoryToAnother(
-        this.workingDirectory,
-        this.templateContentPath,
-        (filePath) =>
-          this.shouldIncludeFile(filePath) && this.getChangedFileType(filePath) === 'content',
-      ),
-      copyAllFilesFromOneDirectoryToAnother(
-        this.workingDirectory,
-        this.templateAssetsPath,
-        (filePath) =>
-          this.shouldIncludeFile(filePath) && this.getChangedFileType(filePath) === 'assets',
-      ),
-    ]);
+    const createGitIGnoreAndCopyFilesPromise: Promise<any>[] = [this.createGitIgnoreFile()];
 
-    await this.createGitIgnoreFile();
+    if (isFirstRun) {
+      createGitIGnoreAndCopyFilesPromise.concat(this.copyAssetsAndContentFilesToTemplate());
+    }
+
+    await Promise.all(createGitIGnoreAndCopyFilesPromise);
   }
 
   protected async spawnAndWaitAndStopIfError(...args: Parameters<typeof spawnAndWait>) {
@@ -69,7 +62,9 @@ export class InitCommand extends ConfigAwareCommand {
   }
 
   protected shouldIncludeFile(filePath: string) {
-    return filePath.endsWith('.md') && !filePath.includes(this.templatePath);
+    const isIgnoredDirectory = this.ignoredDirectories.some((dir) => filePath.includes(dir));
+    const isIgnoredFile = this.ignoredFiles.some((file) => filePath.endsWith(file));
+    return !isIgnoredDirectory && !isIgnoredFile && !filePath.includes(this.templatePath);
   }
 
   protected getChangedFileType(path: string): 'content' | 'assets' {
@@ -85,11 +80,11 @@ export class InitCommand extends ConfigAwareCommand {
     await addToGitIgnore(this.workingDirectory, itemsToIgnore);
   }
 
-  protected async cloneAndInstallTemplate(outDir: string) {
+  protected async cloneAndInstallTemplate() {
     await this.cloneRepository();
     console.log(chalk.green('Successfully Cloned Template'));
     await this.spawnAndWaitAndStopIfError('npm', ['install'], {
-      cwd: outDir,
+      cwd: this.templatePath,
     });
     console.log(chalk.green('Successfully Installed Dependencies'));
   }
@@ -115,5 +110,33 @@ export class InitCommand extends ConfigAwareCommand {
   protected isFirstRun(templatePath: string) {
     //TOOD: Be more specific about this condition
     return !pathExists(templatePath);
+  }
+
+  protected async copyAssetsAndContentFilesToTemplate() {
+    const createDirectoryPromises = [];
+    if (!pathExists(this.templateContentPath)) {
+      createDirectoryPromises.push(createDirectory(this.templateContentPath));
+    }
+
+    if (!pathExists(this.templateAssetsPath)) {
+      createDirectoryPromises.push(createDirectory(this.templateAssetsPath));
+    }
+
+    await Promise.all(createDirectoryPromises);
+
+    return await Promise.all([
+      copyAllFilesFromOneDirectoryToAnother(
+        this.workingDirectory,
+        this.templateContentPath,
+        (filePath) =>
+          this.shouldIncludeFile(filePath) && this.getChangedFileType(filePath) === 'content',
+      ),
+      copyAllFilesFromOneDirectoryToAnother(
+        this.workingDirectory,
+        this.templateAssetsPath,
+        (filePath) =>
+          this.shouldIncludeFile(filePath) && this.getChangedFileType(filePath) === 'assets',
+      ),
+    ]);
   }
 }
