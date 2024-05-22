@@ -9,6 +9,7 @@ import {
   createDirectory,
 } from '../lib/utils/fs.util';
 import { addToGitIgnore } from '../lib/utils/gitignore.util';
+import { createOrModifyMetaFile } from '../lib/utils/meta-filler.util'
 
 export class InitCommand extends ConfigAwareCommand {
   protected outDir: string;
@@ -37,6 +38,8 @@ export class InitCommand extends ConfigAwareCommand {
     if (isFirstRun) {
       await this.cloneAndInstallTemplate();
     }
+
+    await createOrModifyMetaFile(this.workingDirectory);
 
     await this.loadTemplateConfig();
 

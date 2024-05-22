@@ -24,7 +24,10 @@ export function getArbitraryMeta(directoryName: string): MetaDocument {
   };
 }
 
-export function getArbitraryChapter(fileName: string, index: number): ChapterDocument {
+export function getArbitraryChapter(
+  fileName: string,
+  index: number,
+): ChapterDocument {
   return {
     title: getSanitizedTitle(fileName),
     index,
@@ -39,7 +42,13 @@ function getCurrentUsername() {
 }
 
 function getCurrentDate() {
-  return new Date().toISOString();
+  const now = new Date();
+  const month = now.getMonth() + 1;
+  const date = now.getDate();
+  const year = now.getFullYear();
+  return `${year}-${month.toString().length > 1 ? month : '0' + month}-${
+    date.toString().length > 1 ? date : '0' + date
+  }`;
 }
 
 function getSanitizedTitle(filename: string) {

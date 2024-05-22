@@ -6,6 +6,7 @@ import {
   mkdir,
   unlink,
   appendFile,
+  writeFile
 } from 'fs/promises';
 import { existsSync, rmSync } from 'fs';
 import { EOL } from 'os';
@@ -47,6 +48,15 @@ export async function appendToFile(filePath: string, data: string | string[] | B
     return await appendFile(filePath, data.join(EOL));
   } else {
     return await appendFile(filePath, data);
+  }
+}
+
+export async function writeToFile(filePath: string , date : string | string[] | Buffer){
+  if (Array.isArray(date)) {
+    return await writeFile(filePath, date.join(EOL));
+  }
+  else {
+    return await writeFile(filePath, date);
   }
 }
 
@@ -119,8 +129,9 @@ export async function createFileIfNotExists(filePath: string) {
   }
 }
 
-export function pathExists(path: string) {
-  return existsSync(path);
+export function pathExists(...path: string[]) {
+  const finalPath = combinePaths(path);
+  return existsSync(finalPath);
 }
 
 export async function copyFile(fromPath: string, toPath: string) {
