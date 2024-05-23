@@ -7,9 +7,10 @@ import {
   copyAllFilesFromOneDirectoryToAnother,
   pathExists,
   createDirectory,
+  performOnAllFilesInDirectory,
 } from '../lib/utils/fs.util';
 import { addToGitIgnore } from '../lib/utils/gitignore.util';
-import { createOrModifyMetaFile } from '../lib/utils/meta-filler.util'
+import { createOrModifyMetaFile, createOrModifyChapterFile } from '../lib/utils/meta-filler.util';
 
 export class InitCommand extends ConfigAwareCommand {
   protected outDir: string;
@@ -19,6 +20,7 @@ export class InitCommand extends ConfigAwareCommand {
   protected templateAssetsPath: string;
   protected ignoredFiles = ['.gitignore', '.metristsrc'];
   protected ignoredDirectories = ['.git'];
+  protected metaFileName = 'meta.md';
 
   public load(program: CommanderStatic) {
     return program.command('init').alias('i');
@@ -35,11 +37,13 @@ export class InitCommand extends ConfigAwareCommand {
 
     const isFirstRun = this.isFirstRun(this.templatePath);
 
+    const initialSetupPromises: Promise<any>[] = [this.addOrUpdateMetadataOfFiles()];
+
     if (isFirstRun) {
-      await this.cloneAndInstallTemplate();
+      initialSetupPromises.push(this.cloneAndInstallTemplate());
     }
 
-    await createOrModifyMetaFile(this.workingDirectory);
+    await Promise.all(initialSetupPromises);
 
     await this.loadTemplateConfig();
 
@@ -68,6 +72,14 @@ export class InitCommand extends ConfigAwareCommand {
     const isIgnoredDirectory = this.ignoredDirectories.some((dir) => filePath.includes(dir));
     const isIgnoredFile = this.ignoredFiles.some((file) => filePath.endsWith(file));
     return !isIgnoredDirectory && !isIgnoredFile && !filePath.includes(this.templatePath);
+  }
+
+  protected shouldIncludeChapterFile(filePath: string) {
+    return (
+      this.shouldIncludeFile(filePath) &&
+      !filePath.endsWith(this.metaFileName) &&
+      this.getChangedFileType(filePath) === 'content'
+    );
   }
 
   protected getChangedFileType(path: string): 'content' | 'assets' {
@@ -139,6 +151,17 @@ export class InitCommand extends ConfigAwareCommand {
         this.templateAssetsPath,
         (filePath) =>
           this.shouldIncludeFile(filePath) && this.getChangedFileType(filePath) === 'assets',
+      ),
+    ]);
+  }
+
+  protected async addOrUpdateMetadataOfFiles() {
+    return Promise.all([
+      createOrModifyMetaFile(this.workingDirectory, this.metaFileName),
+      performOnAllFilesInDirectory(
+        this.workingDirectory,
+        createOrModifyChapterFile,
+        this.shouldIncludeChapterFile.bind(this),
       ),
     ]);
   }

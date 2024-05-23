@@ -1,4 +1,9 @@
-import { getArbitraryMeta, validateMetaDocumentFrontmatter } from './content-layer.util';
+import {
+  getArbitraryMeta,
+  validateMetaDocumentFrontmatter,
+  getArbitraryChapter,
+  validateChapterDocumentFrontmatter,
+} from './content-layer.util';
 import {
   serializeFrontmatter,
   parseFrontmatter,
@@ -10,12 +15,23 @@ import { writeToFile, createFile, pathExists, readFile, combinePaths } from './f
 import { sep } from 'path';
 import { SafeParseReturnType } from 'zod';
 
-const META_FILE_NAME = 'meta.md';
+export async function createOrModifyChapterFile(filePath, index: number) {
+  const sanitizedFileName = getSanitizedLastPartOfPath(filePath);
+  const arbitraryChapter = getArbitraryChapter(sanitizedFileName, index);
 
-export async function createOrModifyMetaFile(baseDir: string) {
-  const metaFilePath = combinePaths([baseDir, META_FILE_NAME]);
-  const directoryName = baseDir.split(sep).pop();
+  return await updateFileWithFrontmatter(
+    filePath,
+    arbitraryChapter,
+    validateChapterDocumentFrontmatter,
+  );
+}
+
+export async function createOrModifyMetaFile(baseDir: string, metaFileName: string) {
+  const metaFilePath = combinePaths([baseDir, metaFileName]);
+
+  const directoryName = getSanitizedLastPartOfPath(baseDir);
   const arbitraryMeta = getArbitraryMeta(directoryName);
+
   if (!pathExists(metaFilePath)) {
     return await createFileWithFrontmatter(metaFilePath, arbitraryMeta);
   } else {
@@ -73,4 +89,13 @@ async function appendFileByCombiningFrontmatter(
   const combinedMeta = { ...arbitraryMeta, ...existingMeta };
   const newContent = replaceFrontmatter(fileContent, combinedMeta);
   return await writeToFile(filePath, newContent);
+}
+
+function getSanitizedLastPartOfPath(baseDir: string) {
+  const directoryName = baseDir.split(sep).pop();
+  return cleanDirectoryName(directoryName);
+}
+
+function cleanDirectoryName(directoryName: string) {
+  return directoryName.trim().replace(/-_/g, ' ');
 }

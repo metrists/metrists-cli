@@ -6,7 +6,7 @@ import {
   mkdir,
   unlink,
   appendFile,
-  writeFile
+  writeFile,
 } from 'fs/promises';
 import { existsSync, rmSync } from 'fs';
 import { EOL } from 'os';
@@ -51,11 +51,10 @@ export async function appendToFile(filePath: string, data: string | string[] | B
   }
 }
 
-export async function writeToFile(filePath: string , date : string | string[] | Buffer){
+export async function writeToFile(filePath: string, date: string | string[] | Buffer) {
   if (Array.isArray(date)) {
     return await writeFile(filePath, date.join(EOL));
-  }
-  else {
+  } else {
     return await writeFile(filePath, date);
   }
 }
@@ -79,16 +78,18 @@ export async function* getContentsRecursively(dir: string) {
 export function copyAllFilesFromOneDirectoryToAnother(
   directoryToLookAt: string,
   outputDirectory: string,
-  shouldInclude: (filePath: string) => boolean,
+  shouldInclude: Parameters<typeof performOnAllFilesInDirectory>[2],
 ) {
   const allFilesPromises = [];
-  performOnAllFilesInDirectory(directoryToLookAt, async (file) => {
-    if (shouldInclude(file)) {
+  performOnAllFilesInDirectory(
+    directoryToLookAt,
+    async (file) => {
       const relativePath = file.replace(directoryToLookAt, '');
       const outputPath = join(outputDirectory, relativePath);
       allFilesPromises.push(copyFile(file, outputPath));
-    }
-  });
+    },
+    shouldInclude,
+  );
 
   return Promise.all(allFilesPromises);
 }
@@ -96,11 +97,14 @@ export function copyAllFilesFromOneDirectoryToAnother(
 export async function performOnAllFilesInDirectory(
   directoryPath: string,
   cb: (filePath: string, orderIndex?: number) => Promise<void>,
+  shouldInclude: (filePath: string) => boolean,
 ) {
   const resultPromises = [];
   let orderIndex = 0;
   for await (const file of getContentsRecursively(directoryPath)) {
-    resultPromises.push(cb(file, orderIndex++));
+    if (shouldInclude(file)) {
+      resultPromises.push(cb(file, orderIndex++));
+    }
   }
   return Promise.all(resultPromises);
 }
