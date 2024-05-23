@@ -6,6 +6,7 @@ import {
   mkdir,
   unlink,
   appendFile,
+  writeFile,
 } from 'fs/promises';
 import { existsSync, rmSync } from 'fs';
 import { EOL } from 'os';
@@ -50,6 +51,14 @@ export async function appendToFile(filePath: string, data: string | string[] | B
   }
 }
 
+export async function writeToFile(filePath: string, date: string | string[] | Buffer) {
+  if (Array.isArray(date)) {
+    return await writeFile(filePath, date.join(EOL));
+  } else {
+    return await writeFile(filePath, date);
+  }
+}
+
 export function combinePaths(paths: string[]) {
   return paths.reduce((finalPath, currentPortion) => join(finalPath, currentPortion), '');
 }
@@ -69,27 +78,33 @@ export async function* getContentsRecursively(dir: string) {
 export function copyAllFilesFromOneDirectoryToAnother(
   directoryToLookAt: string,
   outputDirectory: string,
-  shouldInclude: (filePath: string) => boolean,
+  shouldInclude: Parameters<typeof performOnAllFilesInDirectory>[2],
 ) {
   const allFilesPromises = [];
-  performOnAllFilesInDirectory(directoryToLookAt, async (file) => {
-    if (shouldInclude(file)) {
+  performOnAllFilesInDirectory(
+    directoryToLookAt,
+    async (file) => {
       const relativePath = file.replace(directoryToLookAt, '');
       const outputPath = join(outputDirectory, relativePath);
       allFilesPromises.push(copyFile(file, outputPath));
-    }
-  });
+    },
+    shouldInclude,
+  );
 
   return Promise.all(allFilesPromises);
 }
 
 export async function performOnAllFilesInDirectory(
   directoryPath: string,
-  cb: (filePath: string) => Promise<void>,
+  cb: (filePath: string, orderIndex?: number) => Promise<void>,
+  shouldInclude: (filePath: string) => boolean,
 ) {
   const resultPromises = [];
+  let orderIndex = 0;
   for await (const file of getContentsRecursively(directoryPath)) {
-    resultPromises.push(cb(file));
+    if (shouldInclude(file)) {
+      resultPromises.push(cb(file, orderIndex++));
+    }
   }
   return Promise.all(resultPromises);
 }
@@ -118,8 +133,9 @@ export async function createFileIfNotExists(filePath: string) {
   }
 }
 
-export function pathExists(path: string) {
-  return existsSync(path);
+export function pathExists(...path: string[]) {
+  const finalPath = combinePaths(path);
+  return existsSync(finalPath);
 }
 
 export async function copyFile(fromPath: string, toPath: string) {
