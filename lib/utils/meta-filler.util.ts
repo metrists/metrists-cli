@@ -16,7 +16,7 @@ import { sep } from 'path';
 import { SafeParseReturnType } from 'zod';
 
 export async function createOrModifyChapterFile(filePath, index: number) {
-  const sanitizedFileName = getSanitizedLastPartOfPath(filePath);
+  const sanitizedFileName = getLastPartOfThePath(filePath);
   const arbitraryChapter = getArbitraryChapter(sanitizedFileName, index);
 
   return await updateFileWithFrontmatter(
@@ -29,7 +29,7 @@ export async function createOrModifyChapterFile(filePath, index: number) {
 export async function createOrModifyMetaFile(baseDir: string, metaFileName: string) {
   const metaFilePath = combinePaths([baseDir, metaFileName]);
 
-  const directoryName = getSanitizedLastPartOfPath(baseDir);
+  const directoryName = getLastPartOfThePath(baseDir);
   const arbitraryMeta = getArbitraryMeta(directoryName);
 
   if (!pathExists(metaFilePath)) {
@@ -91,11 +91,6 @@ async function appendFileByCombiningFrontmatter(
   return await writeToFile(filePath, newContent);
 }
 
-function getSanitizedLastPartOfPath(baseDir: string) {
-  const directoryName = baseDir.split(sep).pop();
-  return cleanDirectoryName(directoryName);
-}
-
-function cleanDirectoryName(directoryName: string) {
-  return directoryName.trim().replace(/-_/g, ' ');
+function getLastPartOfThePath(baseDir: string) {
+  return baseDir.split(sep).pop();
 }
