@@ -1,33 +1,34 @@
 import { userInfo } from 'os';
+import { z } from 'zod';
 
-export interface ChapterDocument {
-  title: string;
-  index: number;
-  author?: string;
-  date?: string;
-  updated?: string;
-}
+const MetaDocumentFrontmatter = z.object({
+  title: z.string(),
+  author: z.string(),
+  date: z.string().optional(),
+  tags: z.array(z.string()).optional(),
+});
 
-export interface MetaDocument {
-  title: string;
-  author: string;
-  date?: string;
-  tags?: string[];
-}
+const ChapterDocumentFrontmatter = z.object({
+  title: z.string(),
+  index: z.number(),
+  author: z.string().optional(),
+  date: z.string().date().optional(),
+  updated: z.string().date().optional(),
+});
 
-export function getArbitraryMeta(directoryName: string): MetaDocument {
+export function getArbitraryMeta(directoryName: string): z.infer<typeof MetaDocumentFrontmatter> {
   return {
     title: getSanitizedTitle(directoryName),
     author: getCurrentUsername(),
     date: getCurrentDate(),
-    tags: [],
+    tags: ['novel'],
   };
 }
 
 export function getArbitraryChapter(
   fileName: string,
   index: number,
-): ChapterDocument {
+): z.infer<typeof ChapterDocumentFrontmatter> {
   return {
     title: getSanitizedTitle(fileName),
     index,
@@ -35,6 +36,14 @@ export function getArbitraryChapter(
     date: getCurrentDate(),
     updated: getCurrentDate(),
   };
+}
+
+export function validateMetaDocumentFrontmatter(frontmatter: any) {
+  return MetaDocumentFrontmatter.safeParse(frontmatter);
+}
+
+export function validateChapterDocumentFrontmatter(frontmatter: any) {
+  return ChapterDocumentFrontmatter.safeParse(frontmatter);
 }
 
 function getCurrentUsername() {
