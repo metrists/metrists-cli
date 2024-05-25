@@ -1,4 +1,3 @@
-import { CommanderStatic, Command } from 'commander';
 import { join } from 'path';
 import * as chalk from 'chalk';
 import { ConfigAwareCommand } from './config-aware.command';
@@ -10,7 +9,11 @@ import {
   performOnAllFilesInDirectory,
 } from '../lib/utils/fs.util';
 import { addToGitIgnore } from '../lib/utils/gitignore.util';
-import { createOrModifyMetaFile, createOrModifyChapterFile } from '../lib/utils/meta-filler.util';
+import {
+  createOrModifyMetaFile,
+  createOrModifyChapterFile,
+} from '../lib/utils/meta-filler.util';
+import type { Command } from 'commander';
 
 export class InitCommand extends ConfigAwareCommand {
   protected outDir: string;
@@ -22,7 +25,7 @@ export class InitCommand extends ConfigAwareCommand {
   protected ignoredDirectories = ['.git'];
   protected metaFileName = 'meta.md';
 
-  public load(program: CommanderStatic) {
+  public load(program: Command) {
     return program.command('init').alias('i');
   }
 
@@ -37,7 +40,9 @@ export class InitCommand extends ConfigAwareCommand {
 
     const isFirstRun = this.isFirstRun(this.templatePath);
 
-    const initialSetupPromises: Promise<any>[] = [this.addOrUpdateMetadataOfFiles()];
+    const initialSetupPromises: Promise<any>[] = [
+      this.addOrUpdateMetadataOfFiles(),
+    ];
 
     if (isFirstRun) {
       initialSetupPromises.push(this.cloneAndInstallTemplate());
@@ -47,21 +52,37 @@ export class InitCommand extends ConfigAwareCommand {
 
     await this.loadTemplateConfig();
 
-    const templateContentRelativePath = this.getTemplateConfig((rc) => rc?.contentPath);
-    this.templateContentPath = join(this.templatePath, templateContentRelativePath);
-    const templateAssetsRelativePath = this.getTemplateConfig((rc) => rc?.assetsPath);
-    this.templateAssetsPath = join(this.templatePath, templateAssetsRelativePath);
+    const templateContentRelativePath = this.getTemplateConfig(
+      (rc) => rc?.contentPath,
+    );
+    this.templateContentPath = join(
+      this.templatePath,
+      templateContentRelativePath,
+    );
+    const templateAssetsRelativePath = this.getTemplateConfig(
+      (rc) => rc?.assetsPath,
+    );
+    this.templateAssetsPath = join(
+      this.templatePath,
+      templateAssetsRelativePath,
+    );
 
-    const createGitIGnoreAndCopyFilesPromise: Promise<any>[] = [this.createGitIgnoreFile()];
+    const createGitIGnoreAndCopyFilesPromise: Promise<any>[] = [
+      this.createGitIgnoreFile(),
+    ];
 
     if (isFirstRun) {
-      createGitIGnoreAndCopyFilesPromise.concat(this.copyAssetsAndContentFilesToTemplate());
+      createGitIGnoreAndCopyFilesPromise.concat(
+        this.copyAssetsAndContentFilesToTemplate(),
+      );
     }
 
     await Promise.all(createGitIGnoreAndCopyFilesPromise);
   }
 
-  protected async spawnAndWaitAndStopIfError(...args: Parameters<typeof spawnAndWait>) {
+  protected async spawnAndWaitAndStopIfError(
+    ...args: Parameters<typeof spawnAndWait>
+  ) {
     const childProcess = await spawnAndWait(...args);
     if (childProcess.exitCode) {
       process.exit(childProcess.exitCode);
@@ -69,9 +90,17 @@ export class InitCommand extends ConfigAwareCommand {
   }
 
   protected shouldIncludeFile(filePath: string) {
-    const isIgnoredDirectory = this.ignoredDirectories.some((dir) => filePath.includes(dir));
-    const isIgnoredFile = this.ignoredFiles.some((file) => filePath.endsWith(file));
-    return !isIgnoredDirectory && !isIgnoredFile && !filePath.includes(this.templatePath);
+    const isIgnoredDirectory = this.ignoredDirectories.some((dir) =>
+      filePath.includes(dir),
+    );
+    const isIgnoredFile = this.ignoredFiles.some((file) =>
+      filePath.endsWith(file),
+    );
+    return (
+      !isIgnoredDirectory &&
+      !isIgnoredFile &&
+      !filePath.includes(this.templatePath)
+    );
   }
 
   protected shouldIncludeChapterFile(filePath: string) {
@@ -144,13 +173,15 @@ export class InitCommand extends ConfigAwareCommand {
         this.workingDirectory,
         this.templateContentPath,
         (filePath) =>
-          this.shouldIncludeFile(filePath) && this.getChangedFileType(filePath) === 'content',
+          this.shouldIncludeFile(filePath) &&
+          this.getChangedFileType(filePath) === 'content',
       ),
       copyAllFilesFromOneDirectoryToAnother(
         this.workingDirectory,
         this.templateAssetsPath,
         (filePath) =>
-          this.shouldIncludeFile(filePath) && this.getChangedFileType(filePath) === 'assets',
+          this.shouldIncludeFile(filePath) &&
+          this.getChangedFileType(filePath) === 'assets',
       ),
     ]);
   }

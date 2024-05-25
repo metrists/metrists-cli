@@ -1,9 +1,12 @@
 #!/usr/bin/env node
 import * as commander from 'commander';
-import { CommanderStatic } from 'commander';
+import { program } from 'commander';
 import * as path from 'path';
 import { CommandLoader } from '../commands';
-import { loadLocalBinCommandLoader, localBinExists } from '../lib/utils/local-binaries.util';
+import {
+  loadLocalBinCommandLoader,
+  localBinExists,
+} from '../lib/utils/local-binaries.util';
 
 const bootstrap = () => {
   const currentWorkingDirectory = __dirname;
@@ -11,12 +14,13 @@ const bootstrap = () => {
   const packageJsonPaths = path.join(
     ...[
       currentWorkingDirectory,
-      ...(currentWorkingDirectory.search('/dist') === -1 ? ['..'] : ['..', '..']),
+      ...(currentWorkingDirectory.search('/dist') === -1
+        ? ['..']
+        : ['..', '..']),
       'package.json',
     ],
   );
 
-  const program: CommanderStatic = commander;
   program
     .version(
       // eslint-disable-next-line
@@ -33,7 +37,7 @@ const bootstrap = () => {
   } else {
     CommandLoader.load(program);
   }
-  commander.parse(process.argv);
+  program.parse(process.argv);
 
   if (!process.argv.slice(2).length) {
     program.outputHelp();
