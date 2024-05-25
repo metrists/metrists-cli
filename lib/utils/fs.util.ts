@@ -127,9 +127,9 @@ export async function createFile(filePath: string, fileContent?: string | Buffer
   return await appendFile(filePath, fileContent ?? '');
 }
 
-export async function createFileIfNotExists(filePath: string) {
+export async function createFileIfNotExists(filePath: string, fileContent?: string | Buffer) {
   if (!pathExists(filePath)) {
-    return await createFile(filePath);
+    return await createFile(filePath , fileContent);
   }
 }
 
