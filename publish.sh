@@ -18,7 +18,20 @@ if [[ "$VERSION_TYPE" != "patch" && "$VERSION_TYPE" != "minor" && "$VERSION_TYPE
   usage
 fi
 
-# # Update the version using npm
+mkdir -p themes
+
+# Clone the theme in the themes/ directory
+git clone git@github.com:metrists/metrists-theme-next.git themes/metrists-theme-next
+
+rm -rf themes/metrists-theme-next/.git
+
+# Build the project
+npm run build
+
+# Copy the raw files in the build
+cp -R themes dist
+
+# Update the version using npm
 # npm version $VERSION_TYPE
 
 # # Get the new version
