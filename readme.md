@@ -1,9 +1,9 @@
 <div align="center">
 <p align="center">
-  <!-- <a href="http://nestjs.com/" target="blank"><img src="https://metrists.com/public/logo.svg" width="120" alt="Nest Logo" /></a> -->
+  <a href="http://metrists.com/" target="blank"><img src="https://metrists.com/images/metrists-abstract.svg" width="120" alt="Metrists Logo" /></a>
 </p>
 
-<h1>Metrists CLI 🦾</h1>
+<h1>Metrists - Continuously Publish</h1>
 
 <p> Simple Localization as a Service  </p>
 
