@@ -1,10 +1,10 @@
-# <img src="https://metrists.com/images/metrists-abstract.svg" height="30" />&nbsp;&nbsp;Metrists [![Downloads Per Month](https://img.shields.io/npm/dm/@metrists/cli)](https://www.npmjs.com/package/@metrists/cli) [![Top Language](https://img.shields.io/github/languages/top/metrists/metrists-cli)](https://github.com/metrists/metrists-cli/) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT) [![<metrists>](https://circleci.com/gh/metrists/metrists-cli.svg?style=shield)](https://app.circleci.com/pipelines/github/metrists/metrists-cli)
+# <img src="https://metrists.com/images/metrists-abstract.svg" height="25" />&nbsp;&nbsp;Metrists [![Downloads Per Month](https://img.shields.io/npm/dm/@metrists/cli)](https://www.npmjs.com/package/@metrists/cli) [![Top Language](https://img.shields.io/github/languages/top/metrists/metrists-cli)](https://github.com/metrists/metrists-cli/) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT) [![<metrists>](https://circleci.com/gh/metrists/metrists-cli.svg?style=shield)](https://app.circleci.com/pipelines/github/metrists/metrists-cli)
 
 ---
 
 ## Description
 
-With
+Metrists is a methodology for continuesly publishing long-form content. We believe that books, should be published incrementally, quickly and with little to no manual process.
 
 ## Table of Contents
 
