@@ -2,9 +2,7 @@
 
 ---
 
-## Description
-
-Metrists is a methodology for continuesly publishing long-form content. We believe that books, should be published incrementally, quickly and with little to no manual process.
+Metrists acts as a Continuous Deployment pipeline for your books. It makes publishing books an incremental, quick and automated process.
 
 ## Table of Contents
 
