@@ -1,24 +1,10 @@
-<div align="center">
-<p align="center">
-  <a href="http://metrists.com/" target="blank"><img src="https://metrists.com/images/metrists-abstract.svg" width="120" alt="Metrists Logo" /></a>
-</p>
-
-<h1>Metrists - Continuously Publish</h1>
-
-<p> Simple Localization as a Service  </p>
-
-</div>
+# <img src="https://metrists.com/images/metrists-abstract.svg" height="30" />&nbsp;&nbsp;Metrists [![Downloads Per Month](https://img.shields.io/npm/dm/@metrists/cli)](https://www.npmjs.com/package/@metrists/cli) [![Top Language](https://img.shields.io/github/languages/top/metrists/metrists-cli)](https://github.com/metrists/metrists-cli/) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT) [![<metrists>](https://circleci.com/gh/metrists/metrists-cli.svg?style=shield)](https://app.circleci.com/pipelines/github/metrists/metrists-cli)
 
 ---
 
-[![Downloads Per Month](https://img.shields.io/npm/dm/@metrists/cli)](https://www.npmjs.com/package/@metrists/cli) [![Top Language](https://img.shields.io/github/languages/top/metrists/metrists-cli)](https://github.com/metrists/metrists-cli/) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![<metrists>](https://circleci.com/gh/metrists/metrists-cli.svg?style=shield)](https://app.circleci.com/pipelines/github/metrists/metrists-cli)
-
 ## Description
 
-The Metrists CLI is a command-line interface tool that gives you the freedom to store your localization files outside of your source-code.
-
-Metrists cli is intended to be used with a internationalization library. We highly recommend that you use [i18next](https://www.i18next.com/) with Metrists.
+With
 
 ## Table of Contents
 
