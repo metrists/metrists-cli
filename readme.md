@@ -4,21 +4,6 @@
 
 Metrists acts as a Continuous Deployment pipeline for your books. It makes publishing books an incremental, quick and automated process.
 
-## Table of Contents
-
-- [Installation](#installation)
-- [GitHub](#sync-using-a-gitHub-repository)
-  - [Setting up a repository](#setup-a-locals-github-repository)
-  - [Connect your project](#connect-your-project-to-the-repository)
-  - [Private repositories](#private-repositories)
-  - [GitHub Enterprise](#github-enterprise)
-- [Environment Variables](#using-environment-variables-as-fetcher-parameters)
-- [Fetchers](#fetchers)
-  - [Custom Fetchers](#custom-fetchers)
-- [Contributing](#contributing)
-- [Code of Conduct](#code-of-conduct)
-- [LICENSE](#license)
-
 ## Getting Started
 
 Create a new directory and execute the following command:
