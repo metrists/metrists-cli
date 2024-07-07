@@ -35,6 +35,10 @@ npx metrists publish
 
 That's it. You can push your files to a repository and connect your CI/CD pipeline. From now, every time you push to your repository, Metrists will automatically publish your book.
 
+### Documentation
+
+Follow [the full documentation](https://metrists.com/docs/documentation) to get started building your own project.
+
 ## Features
 
 - Live reload while in watch mode
