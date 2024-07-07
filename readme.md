@@ -24,7 +24,7 @@ Metrists acts as a Continuous Deployment pipeline for your books. It makes publi
 Create a new directory and execute the following command:
 
 ```bash
-npx metrists watch --example --newbie
+npx metrists watch --example --noob
 ```
 
 Modify the markdown files. You can then publish your book:
@@ -34,6 +34,13 @@ npx metrists publish
 ```
 
 That's it. You can push your files to a repository and connect your CI/CD pipeline. From now, every time you push to your repository, Metrists will automatically publish your book.
+
+## Features
+
+- Live reload while in watch mode
+- Fast and incremental builds
+- Static web export
+- epub export (coming soon)
 
 ## Contributing
 
