@@ -40,7 +40,11 @@ That's it. You can push your files to a repository and connect your CI/CD pipeli
 - Live reload while in watch mode
 - Fast and incremental builds
 - Static web export
-- epub export (coming soon)
+- `.epub` export (coming soon)
+
+## Roadmap
+
+See [our docs](https://metrists.com/docs) for more information about where we are taking metrists.
 
 ## Contributing
 
